@@ -2,9 +2,9 @@
 <h1> AdjointDEIS (NeurIPS 2024) </h1>
 <h3> AdjointDEIS: Efficient Gradients for Diffusion Models </h3>
 
-[Zander W. Blasingame](https://zblasingame.github.io/)<sup>1</sup>, [Chen Liu](https://camel.clarkson.edu/members.html)<sup>1</sup>
+[Zander W. Blasingame](https://zblasingame.github.io/) [Chen Liu](https://camel.clarkson.edu/members.html)
 
-<sup>1</sup> Clarkson University
+Clarkson University
 
 [![arXiv](https://img.shields.io/badge/arXiv-<2405.15020>-<COLOR>.svg)](https://arxiv.org/abs/2405.15020)
 [![Webpage](https://img.shields.io/badge/webpage-Project%20Page-blue.svg)](https://zblasingame.github.io/AdjointDEIS/)
