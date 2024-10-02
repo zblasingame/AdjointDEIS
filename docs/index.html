@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!-- Meta tags for social media banners, these should be filled in appropriately as they are your "business card" -->
+  <!-- Replace the content tag with appropriate information -->
+  <meta name="description" content="We present AdjointDEIS, an efficient framework for calculating gradients w.r.t. the Probability Flow ODE and diffusion SDE.">
+  <meta property="og:title" content="AdjointDEIS: Efficient Gradients for Diffusion Models"/>
+  <meta name="og:description" content="We present AdjointDEIS, an efficient framework for calculating gradients w.r.t. the Probability Flow ODE and diffusion SDE.">
+  <meta property="og:url" content="https://zblasingame.github.io/AdjointDEIS"/>
+  <!-- Path to banner image, should be in the path listed below. Optimal dimensions are 1200X630-->
+  <!-- <meta property="og:image" content="static/image/your_banner_image.png" />
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/> -->
+
+
+  <meta name="twitter:title" content="AdjointDEIS: Efficient Gradients for Diffusion Models">
+  <meta name="twitter:description" content="We present AdjointDEIS, an efficient framework for calculating gradients w.r.t. the Probability Flow ODE and diffusion SDE.">
+  <!-- Keywords for your paper to be indexed by-->
+  <meta name="keywords" content="AdjointDEIS, Diffusion, Adjoint Sensitivity Methods, ODE Solver, SDE Solver, Guided Generation">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <title>AdjointDEIS: Efficient Gradients for Diffusion Models</title>
+  
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+  rel="stylesheet">
+
+  <link rel="stylesheet" href="css/bulma.min.css">
+  <link rel="stylesheet" href="css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="css/bulma-slider.min.css">
+  <link rel="stylesheet" href="css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+  href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="css/index.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://documentcloud.adobe.com/view-sdk/main.js"></script>
+  <script defer src="js/fontawesome.all.min.js"></script>
+  <script src="js/bulma-carousel.min.js"></script>
+  <script src="js/bulma-slider.min.js"></script>
+  <script src="js/index.js"></script>
+</head>
+<body>
+
+
+  <section class="hero">
+    <div class="hero-body">
+      <div class="container is-max-desktop">
+        <div class="columns is-centered">
+          <div class="column has-text-centered">
+            <h1 class="title is-1 publication-title">
+              AdjointDEIS: Efficient Gradients for Diffusion Models
+            </h1>
+            <div class="is-size-5 publication-authors">
+              <!-- Paper authors -->
+              <span class="author-block">
+                <a href="https://zblasingame.github.io/" target="_blank">Zander W. Blasingame</a> and </span>
+                <span class="author-block">
+                  <a href="https://camel.clarkson.edu/members.html" target="_blank">Chen Liu</a></span>
+                  </div>
+
+                  <div class="is-size-5 publication-authors">
+                    <span class="author-block">Clarkson University</span>
+                  </div>
+
+                <div class="is-size-5 publication-authors">
+                    <span class="author-block"><b>NeurIPS 2024 (Poster)</b></span>
+                  </div>
+
+
+                  <div class="column has-text-centered">
+                    <div class="publication-links">
+                      <!-- Arxiv PDF link -->
+                      <span class="link-block">
+                        <a href="https://arxiv.org/pdf/2405.15020" target="_blank"
+                        class="external-link button is-normal is-rounded is-dark">
+                        <span class="icon">
+                          <i class="fas fa-file-pdf"></i>
+                        </span>
+                        <span>Paper</span>
+                      </a>
+                    </span>
+
+                 <!-- ArXiv abstract Link -->
+                <span class="link-block">
+                  <a href="https://arxiv.org/abs/2405.15020" target="_blank"
+                  class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+
+                      
+               <!-- Github link -->
+                <span class="link-block">
+                  <a href="https://github.com/zblasingame/AdjointDEIS" target="_blank"
+                  class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="fab fa-github"></i>
+                  </span>
+                  <span>Code</span>
+                </a>
+              </span>
+
+                <span class="link-block">
+                  <a href="#BibTeX" target="_blank"
+                  class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="fa fa-quote-left"></i>
+                  </span>
+                  <span>Cite</span>
+                </a>
+              </span>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Teaser image-->
+<section class="hero teaser">
+  <div class="container is-max-desktop">
+    <div class="hero-body">
+      <img src="assets/adjoint_dies_master_eq.png" alt="AdjointDEIS Taylor Expansion">
+      <h2 class="subtitle has-text-centered">
+          We propose AdjointDEIS a novel framework which can calculate the gradients of diffusion models w.r.t. the solution trajectories, model parameters, and conditional information. Above we highlight the principal AdjointDEIS formulation which calculates the gradient w.r.t. the solution trajectories.
+      </h2>
+    </div>
+  </div>
+</section>
+
+
+<!-- Paper abstract -->
+<section class="section hero is-light">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+         The optimization of the latents and parameters of diffusion models with respect to some differentiable metric defined on the output of the model is a challenging and complex problem. The sampling for diffusion models is done by solving either the probability flow ODE or diffusion SDE wherein a neural network approximates the score function or related quantity, allowing a numerical ODE/SDE solver to be used. However, naïve backpropagation techniques are memory intensive, requiring the storage of all intermediate states, and face additional complexity in handling the injected noise from the diffusion term of the diffusion SDE. We propose a novel method based on the stochastic adjoint sensitivity method to calculate the gradientwith respect to the initial noise, conditional information, and model parameters by solving an additional SDE whose solution is the gradient of the diffusion SDE. We exploit the unique construction of diffusion SDEs to further simplify the formulation of the adjoint diffusion SDE and use a change-of-variables to simplify the solution to an exponentially weighted integral. Using this formulation we derive a custom solver for the adjoint SDE as well as the simpler adjoint ODE. The proposed adjoint diffusion solvers can efficiently compute the gradients for both the probability flow ODE and diffusion SDE for latents and parameters of the model. Lastly, we demonstrate the effectiveness of the adjoint diffusion solvers onthe face morphing problem. 
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- End paper abstract -->
+
+<!--<section class="section hero is-small">-->
+  <!--<div class="hero-body">-->
+    <!--<div class="container is-max-desktop">-->
+      <!--<div class="level-set has-text-justified">-->
+        <!--<p>-->
+          <!--The face morphing attack attempts to fool a Face Recognition (FR) system by producing a <em>single</em> image which registers a false accept with <em>both</em> original identities. Previous face morphing attacks used landmark-based methods which align and warp the two faces before performing a pixel-wise average between the two faces. Such techniques are prone to considerably artefacts, especially outside the center of the face. Conversely, Generative Adversarial Network (GAN) based morphs produce more realistic looking faces but their performance, but their effectiveness in fooling the FR system leaves much to be desired. DiMs outperform GAN-based morphs; however, they still lag behind landmark-based morphs in terms of fooling an FR system. We propose Greedy-DiM* a family of algorithms which leverage a simple greedy strategy to <em>massively</em> improve the effectiveness of DiM while still retaining the high visual fidelity of DiM.-->
+        <!--</p>-->
+      <!--</div>-->
+      <!--<img class="blend-img-background center-image" src="assets/greedy_dim_example_morph.png" alt="Example morphed image produced by Greedy-DiM">-->
+    <!--</div>-->
+  <!--</div>-->
+<!--</section>-->
+
+  <section class="section hero is-small">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3">Method</h2>
+      <div class="level-set has-text-justified">
+        <p>
+        Following in the research on ODE solvers for the <i>Probability Flow</i> ODE we explicit the semi-linear structure of the empirical adjoint <i>Probability Flow</i> ODE to eliminate the linear discretization error and simplify the computation of the ODE.
+        We propose a <em>bespoke</em> family of ODE solvers which minimize the discretization error in calculating the ODE.
+        </p>
+      </div>
+      <img class="blend-img-background center-image" src="assets/adjoint_deis_1.png" alt="AdjointDEIS-1">
+      <p>
+      <strong>AdjointDEIS-1</strong> First-order solver of the empirical adjoint <i>Probability Flow</i> ODE.
+      </p>
+       <img class="blend-img-background center-image" src="assets/adjoint_deis_2m.png" alt="AdjointDEIS-2M">
+      <p>
+        <strong>AdjointDEIS-2M</strong> Second-order multi-step solver of the empirical adjoint <i>Probability Flow</i> ODE.
+      </p>
+    </div>
+  </div>
+</section>
+
+
+  <section class="section hero is-small is-light">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3">Diffusion SDEs</h2>
+      <div class="level-set has-text-justified">
+        <p>
+            SDEs introduce a lot of complexity over ODEs; however, we show that the <em>adjoint</em> diffusion SDE actually reduces to an ODE!
+            This enables the usage of the same solvers for the adjoint <i>Probability Flow</i> with the addition of a factor of 2 on the non-linear term.
+        </p>
+      </div>
+        <img class="blend-img-background center-image" src="assets/adjoint_deis_1_sde.png" alt="SDE-AdjointDEIS-1">
+      <p>
+        <strong>SDE-AdjointDEIS-1</strong> First-order solver of the empirical adjoint diffusion SDE.
+      </p>
+
+    </div>
+  </div>
+</section>
+
+
+  <section class="section hero is-small">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3">Comparison with Other Methods</h2>
+      <img class="blend-img-background center-image" src="assets/comp_adjoint.png" alt="Comparision of methods">
+      <div class="level-set has-text-justified">
+        <p>
+            Our method is interoperable with a variety of solvers for the <i>Probability Flow</i> ODE and supports calculating the adjoint for diffusion SDEs.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!--BibTex citation -->
+  <section class="section" id="BibTeX">
+    <div class="container is-max-desktop content">
+      <h2 class="title">BibTeX</h2>
+      <pre><code>
+        @inproceedings{blasingame2024adjointdeis,
+          title = {Adjoint{DEIS}: Efficient Gradients for Diffusion Models},
+          author = {Blasingame, Zander W. and Liu, Chen},
+          booktitle = {The Thirty-eighth Annual Conference on Neural Information Processing Systems},
+          year = {2024},
+          url = {https://openreview.net/forum?id=fAlcxvrOEX},
+        }
+      </code></pre>
+    </div>
+</section>
+<!--End BibTex citation -->
+
+
+  <footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <h2 class="title">Acknowledgements</h2>
+        <div class="content">
+          <p>
+            This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank">Academic Project Page Template</a> which was adopted from the <a href="https://nerfies.github.io" target="_blank">Nerfies</a> project page.
+            You are free to borrow the of this website, we just ask that you link back to this page in the footer. <br> This website is licensed under a <a rel="license"  href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative
+            Commons Attribution-ShareAlike 4.0 International License</a>.
+          </p>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>
