@@ -128,9 +128,10 @@
 <section class="hero teaser">
   <div class="container is-max-desktop">
     <div class="hero-body">
-      <img src="assets/adjoint_deis_master_eq.png" alt="AdjointDEIS Taylor Expansion">
+      <img src="assets/overview.png" alt="AdjointDEIS Flow Chart">
       <h2 class="subtitle has-text-centered">
-          We propose AdjointDEIS a novel framework which can calculate the gradients of diffusion models w.r.t. the solution trajectories, model parameters, and conditional information. Above we highlight the principal AdjointDEIS formulation which calculates the gradient w.r.t. the solution trajectories.
+          We propose AdjointDEIS a family of bespoke ODE solvers which solve the continuous adjoint equations for diffusion models.
+          Above we show a high level view of AdjointDEIS.
       </h2>
     </div>
   </div>
@@ -145,7 +146,7 @@
         <h2 class="title is-3">Abstract</h2>
         <div class="content has-text-justified">
           <p>
-         The optimization of the latents and parameters of diffusion models with respect to some differentiable metric defined on the output of the model is a challenging and complex problem. The sampling for diffusion models is done by solving either the probability flow ODE or diffusion SDE wherein a neural network approximates the score function or related quantity, allowing a numerical ODE/SDE solver to be used. However, naïve backpropagation techniques are memory intensive, requiring the storage of all intermediate states, and face additional complexity in handling the injected noise from the diffusion term of the diffusion SDE. We propose a novel method based on the stochastic adjoint sensitivity method to calculate the gradientwith respect to the initial noise, conditional information, and model parameters by solving an additional SDE whose solution is the gradient of the diffusion SDE. We exploit the unique construction of diffusion SDEs to further simplify the formulation of the adjoint diffusion SDE and use a change-of-variables to simplify the solution to an exponentially weighted integral. Using this formulation we derive a custom solver for the adjoint SDE as well as the simpler adjoint ODE. The proposed adjoint diffusion solvers can efficiently compute the gradients for both the probability flow ODE and diffusion SDE for latents and parameters of the model. Lastly, we demonstrate the effectiveness of the adjoint diffusion solvers onthe face morphing problem. 
+          The optimization of the latents and parameters of diffusion models with respect to some differentiable metric defined on the output of the model is a challenging and complex problem. The sampling for diffusion models is done by solving either the <i>probability flow</i> ODE or diffusion SDE wherein a neural network approximates the score function allowing a numerical ODE/SDE solver to be used. However, naïve backpropagation techniques are memory intensive, requiring the storage of all intermediate states, and face additional complexity in handling the injected noise from the diffusion term of the diffusion SDE. We propose a novel family of bespoke ODE solvers to the continuous adjoint equations for diffusion models, which we call <i>AdjointDEIS</i>. We exploit the unique construction of diffusion SDEs to further simplify the formulation of the continuous adjoint equations using <i>exponential integrators</i>. Moreover, we provide convergence order guarantees for our bespoke solvers. Significantly, we show that continuous adjoint equations for diffusion SDEs actually simplify to a simple ODE. Lastly, we demonstrate the effectiveness of AdjointDEIS for guided generation with an adversarial attack in the form of the face morphing problem.
           </p>
         </div>
       </div>
@@ -170,20 +171,14 @@
   <section class="section hero is-small">
   <div class="hero-body">
     <div class="container is-max-desktop">
-      <h2 class="title is-3">Method</h2>
-      <div class="level-set has-text-justified">
-        <p>
-        Following in the research on ODE solvers for the <i>Probability Flow</i> ODE we explicit the semi-linear structure of the empirical adjoint <i>Probability Flow</i> ODE to eliminate the linear discretization error and simplify the computation of the ODE.
-        We propose a <em>bespoke</em> family of ODE solvers which minimize the discretization error in calculating the ODE.
-        </p>
-      </div>
-      <img class="blend-img-background center-image" src="assets/adjoint_deis_1.png" alt="AdjointDEIS-1">
+      <h2 class="title is-3">Results</h2>
+      <img class="blend-img-background center-image" src="assets/morph_comp.png" alt="AdjointDEIS-1">
       <p>
-      <strong>AdjointDEIS-1</strong> First-order solver of the empirical adjoint <i>Probability Flow</i> ODE.
+        We can guide the generative process by using AdjointDEIS. For example we use AdjointDEIS to create high quality face morphs which fool Face Recongition (FR) systems.
       </p>
-       <img class="blend-img-background center-image" src="assets/adjoint_deis_2m.png" alt="AdjointDEIS-2M">
+       <img class="blend-img-background center-image" src="assets/morph_results.png" alt="AdjointDEIS-2M">
       <p>
-        <strong>AdjointDEIS-2M</strong> Second-order multi-step solver of the empirical adjoint <i>Probability Flow</i> ODE.
+        AdjointDEIS applied to face morphing achieves SOTA results.
       </p>
     </div>
   </div>
@@ -193,18 +188,21 @@
   <section class="section hero is-small is-light">
   <div class="hero-body">
     <div class="container is-max-desktop">
-      <h2 class="title is-3">Diffusion SDEs</h2>
+      <h2 class="title is-3">Method</h2>
       <div class="level-set has-text-justified">
         <p>
-            SDEs introduce a lot of complexity over ODEs; however, we show that the <em>adjoint</em> diffusion SDE actually reduces to an ODE!
-            This enables the usage of the same solvers for the adjoint <i>Probability Flow</i> with the addition of a factor of 2 on the non-linear term.
+            We propose to solve the continous adjoint equations to solve the following optimization problem below.
+            We exploit the unique structure of diffusion models to make these numerical solvers <i>efficient</i>.
         </p>
       </div>
-        <img class="blend-img-background center-image" src="assets/adjoint_deis_1_sde.png" alt="SDE-AdjointDEIS-1">
+        <img class="blend-img-background center-image" src="assets/problem_statement.png" alt="SDE-AdjointDEIS-1">
+        <p>
+        <strong>Problem Statement</strong> Given a diffusion ODE solve the problem above.
+        </p>
+        <img class="blend-img-background center-image" src="assets/sde_is_ode.png" alt="SDE-AdjointDEIS-1">
       <p>
-        <strong>SDE-AdjointDEIS-1</strong> First-order solver of the empirical adjoint diffusion SDE.
+        The continuous adjoint equations for diffusion SDEs actually simplify to an ODE!
       </p>
-
     </div>
   </div>
 </section>
@@ -217,7 +215,7 @@
       <img class="blend-img-background center-image" src="assets/comp_adjoint.png" alt="Comparision of methods">
       <div class="level-set has-text-justified">
         <p>
-            Our method is interoperable with a variety of solvers for the <i>Probability Flow</i> ODE and supports calculating the adjoint for diffusion SDEs.
+            We can find the gradients for a number of quantities of interest and can find them for both diffusion ODEs and SDEs.
         </p>
       </div>
     </div>
