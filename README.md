@@ -12,10 +12,10 @@ Clarkson University
 
 ## News
 
-- **2024.09.25**: Congratulations on AdjointDEIS being accepted by NeurIPS 2024! Our open-source project is under development, stay tuned for updates!
+- **2024.09.25**: AdjointDEIS was accepted by NeurIPS 2024! Our open-source project is under development, stay tuned for updates!
 
 ## Todo
-- [ ] release the camera-ready version of the paper
+- [x] release the camera-ready version of the paper
 - [ ] release the code for solving the adjoint *Probability Flow* ODE
 - [ ] release the code for solving the adjoint diffusion SDE
 
