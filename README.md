@@ -7,6 +7,7 @@
 Clarkson University
 
 [![arXiv](https://img.shields.io/badge/arXiv-<2405.15020>-<COLOR>.svg)](https://arxiv.org/abs/2405.15020)
+[![Paper](https://img.shields.io/badge/Paper-Camera%20Ready-red.svg)](https://openreview.net/pdf?id=fAlcxvrOEX)
 [![Webpage](https://img.shields.io/badge/webpage-Project%20Page-blue.svg)](https://zblasingame.github.io/AdjointDEIS/)
 </div>
 
