@@ -1,264 +1,1651 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en" data-theme="light">
 <head>
-  <meta charset="utf-8">
-  <!-- Meta tags for social media banners, these should be filled in appropriately as they are your "business card" -->
-  <!-- Replace the content tag with appropriate information -->
-  <meta name="description" content="We present AdjointDEIS, an efficient framework for calculating gradients w.r.t. the Probability Flow ODE and diffusion SDE.">
-  <meta property="og:title" content="AdjointDEIS: Efficient Gradients for Diffusion Models"/>
-  <meta name="og:description" content="We present AdjointDEIS, an efficient framework for calculating gradients w.r.t. the Probability Flow ODE and diffusion SDE.">
-  <meta property="og:url" content="https://zblasingame.github.io/AdjointDEIS"/>
-  <!-- Path to banner image, should be in the path listed below. Optimal dimensions are 1200X630-->
-  <!-- <meta property="og:image" content="static/image/your_banner_image.png" />
-  <meta property="og:image:width" content="1200"/>
-  <meta property="og:image:height" content="630"/> -->
+<meta charset="utf-8">
+<title>AdjointDEIS — Efficient Gradients for Diffusion Models</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="AdjointDEIS: exponential-integrator solvers for the continuous adjoint equations of diffusion ODEs and SDEs. O(1) memory in solver length, k-th order convergence, and a structural identity: the continuous adjoint of a diffusion SDE is a deterministic ODE.">
 
+<!-- pre-paint theme to avoid flash -->
+<script>
+(function(){
+  try{
+    var stored = localStorage.getItem('adjointdeis-theme');
+    var sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var theme = stored || (sys ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  }catch(e){}
+})();
+</script>
 
-  <meta name="twitter:title" content="AdjointDEIS: Efficient Gradients for Diffusion Models">
-  <meta name="twitter:description" content="We present AdjointDEIS, an efficient framework for calculating gradients w.r.t. the Probability Flow ODE and diffusion SDE.">
-  <!-- Keywords for your paper to be indexed by-->
-  <meta name="keywords" content="AdjointDEIS, Diffusion, Adjoint Sensitivity Methods, ODE Solver, SDE Solver, Guided Generation">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+@font-face{font-family:'et-book';src:url('https://edwardtufte.github.io/et-book/et-book/et-book-roman-line-figures/et-book-roman-line-figures.woff') format('woff');font-weight:normal;font-style:normal;font-display:swap}
+@font-face{font-family:'et-book';src:url('https://edwardtufte.github.io/et-book/et-book/et-book-display-italic-old-style-figures/et-book-display-italic-old-style-figures.woff') format('woff');font-weight:normal;font-style:italic;font-display:swap}
+@font-face{font-family:'et-book';src:url('https://edwardtufte.github.io/et-book/et-book/et-book-bold-line-figures/et-book-bold-line-figures.woff') format('woff');font-weight:bold;font-style:normal;font-display:swap}
+@font-face{font-family:'et-book-roman-old-style';src:url('https://edwardtufte.github.io/et-book/et-book/et-book-roman-old-style-figures/et-book-roman-old-style-figures.woff') format('woff');font-weight:normal;font-style:normal;font-display:swap}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@400;500&family=Lato:wght@400;500;700&display=swap" rel="stylesheet">
 
+<!-- MathJax -->
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 
-  <title>AdjointDEIS: Efficient Gradients for Diffusion Models</title>
-  
-  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
-  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
-  rel="stylesheet">
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   AdjointDEIS — green palette
+   Layout/typography ported verbatim from greedydimblog, blue → green.
+   ════════════════════════════════════════════════════════════════════ */
+:root{
+  /* Tufte parchment background, near-black ink, green-only accent */
+  --bg-deep:#fffff8;
+  --bg-surface:#f5f6f1;
+  --bg-card:#fffffb;
+  --ink:#0d1f0d;
+  --text-primary:#161e16;
+  --text-secondary:#3a443a;
+  --text-tertiary:#5a655a;
+  --text-dim:#8a948a;
+  --rule:#cfd4cb;
 
-  <link rel="stylesheet" href="css/bulma.min.css">
-  <link rel="stylesheet" href="css/bulma-carousel.min.css">
-  <link rel="stylesheet" href="css/bulma-slider.min.css">
-  <link rel="stylesheet" href="css/fontawesome.all.min.css">
-  <link rel="stylesheet"
-  href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
-  <link rel="stylesheet" href="css/index.css">
+  /* Green palette (AdjointDEIS) — analogous roles to greedydim blues */
+  --mauve:#3f7d3b;          /* primary green */
+  --mauve-deep:#1f4a1f;     /* deep forest (h-link / heading accent) */
+  --mauve-bright:#5a9d52;
+  --mauve-soft:#a8c8a4;
+  --mauve-light:#dde9d6;
+  --mauve-pale:#eef4ea;
+  --cyan:#2f8a7a;           /* secondary teal accent */
 
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script src="https://documentcloud.adobe.com/view-sdk/main.js"></script>
-  <script defer src="js/fontawesome.all.min.js"></script>
-  <script src="js/bulma-carousel.min.js"></script>
-  <script src="js/bulma-slider.min.js"></script>
-  <script src="js/index.js"></script>
+  /* Functional accent */
+  --warn:#a83434;
+  --warn-soft:#f5dcdc;
+  --ok:#3a7a3a;
+  --gilt:#a37a2c;
+
+  --serif:'et-book','et-book-roman-old-style',"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,"Hoefler Text",Georgia,serif;
+  --serif-display:'et-book',"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:'Lato',"Gill Sans MT","Gill Sans","Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
+  --mono:'Inconsolata','SF Mono',Menlo,Consolas,monospace;
+  --max-w:760px;
+  --wide-w:1100px;
+  --measure:760px;          /* alias of --max-w for legacy rules */
+  --shadow-sm:0 1px 3px rgba(31,74,31,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(31,74,31,.08),0 2px 6px rgba(0,0,0,.04);
+  --shadow-lg:0 12px 40px rgba(31,74,31,.10),0 4px 12px rgba(0,0,0,.05);
+
+  /* Surrogates for hardcoded colors so dark mode can override them. */
+  --paper:#fffff8;
+  --paper-soft:#fff;
+  --hairline:rgba(0,0,0,.06);
+  --hairline-strong:rgba(0,0,0,.10);
+  --grid-faint:rgba(0,0,0,.07);
+  --grid-axis:rgba(0,0,0,.45);
+  --code-bg:#1e1e1e;
+  --code-fg:#dcd7c8;
+  --on-mauve:#fff;
+}
+
+/* ───── DARK MODE ─────
+   Triggered by [data-theme="dark"] on <html>. Init script reads
+   localStorage('adjointdeis-theme') then prefers-color-scheme. */
+html[data-theme="dark"]{
+  --bg-deep:#0e140e;
+  --bg-surface:#141b14;
+  --bg-card:#19211a;
+  --ink:#eef4ee;
+  --text-primary:#e2e8e2;
+  --text-secondary:#b8c1b8;
+  --text-tertiary:#8d978d;
+  --text-dim:#6f796f;
+  --rule:#2a3329;
+
+  /* Brighter greens for AA contrast on dark — same palette role as light */
+  --mauve:#7cc47c;             /* primary green */
+  --mauve-deep:#cfe9cc;        /* link / heading accent on dark */
+  --mauve-bright:#5bb55b;
+  --mauve-soft:#3c6b3a;
+  --mauve-light:#23332a;
+  --mauve-pale:#1a2519;
+  --cyan:#6fc6b0;
+
+  --warn:#e57373;
+  --warn-soft:#3a2222;
+  --ok:#7fc97f;
+  --gilt:#c9a35a;
+
+  --paper:#121a13;
+  --paper-soft:#141b15;
+  --hairline:rgba(255,255,255,.08);
+  --hairline-strong:rgba(255,255,255,.14);
+  --grid-faint:rgba(255,255,255,.07);
+  --grid-axis:rgba(255,255,255,.40);
+  --code-bg:#08120a;
+  --code-fg:#e8e6d8;
+  --on-mauve:#0e140e;
+
+  --shadow-sm:0 1px 3px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.25);
+  --shadow-md:0 4px 16px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.30);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.55),0 4px 12px rgba(0,0,0,.35);
+
+  color-scheme:dark;
+}
+
+/* ───── theme toggle button (fixed top-right) ───── */
+.theme-toggle{position:fixed;top:1rem;right:1rem;z-index:9998;width:42px;height:42px;border-radius:50%;background:var(--bg-card);border:1px solid var(--rule);color:var(--mauve-deep);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);transition:background .2s ease,border-color .2s ease,color .2s ease,transform .2s ease;font-family:var(--sans)}
+.theme-toggle:hover{background:var(--mauve-pale);border-color:var(--mauve-soft);color:var(--mauve);transform:translateY(-1px)}
+.theme-toggle:focus-visible{outline:2px solid var(--mauve);outline-offset:3px}
+.theme-toggle svg{width:18px;height:18px;display:block;transition:opacity .25s ease,transform .35s ease}
+.theme-toggle .icon-sun{display:none}
+.theme-toggle .icon-moon{display:block}
+html[data-theme="dark"] .theme-toggle .icon-sun{display:block}
+html[data-theme="dark"] .theme-toggle .icon-moon{display:none}
+@media (max-width:480px){.theme-toggle{width:38px;height:38px;top:.7rem;right:.7rem}.theme-toggle svg{width:16px;height:16px}}
+
+/* MathJax SVG output uses currentColor — make sure it picks up the dark ink */
+html[data-theme="dark"] mjx-container svg{color:var(--text-primary)}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;scroll-behavior:smooth;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{background:var(--bg-deep);color:var(--text-primary);font-family:var(--serif);font-size:1.15rem;line-height:1.6;font-weight:400;overflow-x:hidden;font-feature-settings:"kern","liga","onum","calt";text-rendering:optimizeLegibility}
+::selection{background:var(--mauve-light);color:var(--mauve-deep)}
+img{max-width:100%;display:block}
+a{color:var(--mauve-deep);text-decoration:none;background-image:linear-gradient(var(--mauve) 0 0);background-position:0 100%;background-repeat:no-repeat;background-size:0% 1px;transition:background-size .25s ease,color .2s}
+a:hover{color:var(--mauve);background-size:100% 1px}
+em,i{font-style:italic;font-family:'et-book',Palatino,Georgia,serif}
+strong,b{font-weight:bold}
+
+/* scroll progress */
+.scroll-progress{position:fixed;top:0;left:0;width:0%;height:2px;background:linear-gradient(90deg,var(--mauve-deep),var(--mauve),var(--cyan),var(--mauve));background-size:200% 100%;animation:shimmerBar 4s ease infinite;z-index:9999}
+@keyframes shimmerBar{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+/* ───── HERO — minimalist Tufte/academic-blog idiom ───── */
+.hero{position:relative;padding:5rem clamp(1.5rem,5vw,4rem) 3rem;background:var(--bg-surface);border-bottom:1px solid var(--rule);overflow:hidden}
+.hero-content{position:relative;z-index:1;max-width:var(--wide-w);margin:0 auto;width:100%;font-family:var(--sans)}
+.hero-venue{
+  display:block;
+  font-family:var(--mono);
+  font-size:.74rem;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--mauve);
+  margin-bottom:1.2rem;
+  font-weight:500;
+  opacity:0;
+  animation:fadeUp .8s ease-out .2s forwards;
+}
+.hero-venue .v-spotlight{color:var(--mauve-deep);font-weight:600}
+.hero-venue .dot{color:var(--mauve)}
+.hero-title{
+  font-family:var(--sans);
+  font-style:normal;
+  font-weight:600;
+  font-size:clamp(2.4rem,6vw,4.8rem);
+  line-height:1.06;
+  letter-spacing:-.015em;
+  color:var(--text-primary);
+  max-width:22ch;
+  margin-bottom:1.6rem;
+  opacity:0;
+  animation:fadeUp .9s ease-out .35s forwards;
+}
+.hero-title .rex{font-family:var(--sans);font-style:normal;color:var(--mauve);font-weight:700}
+.hero-title .accent{font-family:var(--serif);font-style:italic;color:var(--mauve-deep);font-weight:600;letter-spacing:0}
+/* Symmetric gilt rule under the title — fades on both sides. */
+.hero-title-rule{
+  width:100%;
+  height:1px;
+  border:0;
+  margin:.2rem 0 1.6rem;
+  background:linear-gradient(to right,
+    transparent 0%,
+    var(--rule) 8%,
+    var(--mauve) 28%,
+    var(--mauve-deep) 50%,
+    var(--mauve) 72%,
+    var(--rule) 92%,
+    transparent 100%);
+  opacity:0;
+  animation:fadeUpGilt .8s ease-out .42s forwards;
+}
+@keyframes fadeUpGilt{from{opacity:0;transform:translateY(24px)}to{opacity:.75;transform:translateY(0)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.hero-sub{
+  font-family:var(--sans);
+  font-size:1.02rem;
+  color:var(--text-primary);
+  max-width:64ch;
+  line-height:1.6;
+  margin-bottom:1.8rem;
+  font-weight:400;
+  letter-spacing:.002em;
+  opacity:0;
+  animation:fadeUp .9s ease-out .5s forwards;
+}
+.hero-sub strong{font-weight:600;color:var(--ink)}
+.hero-sub em{font-style:italic;font-family:var(--sans);color:var(--mauve-deep);font-weight:500}
+
+/* Paper / code links as a mono row */
+.hero-links{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:baseline;
+  gap:0;
+  margin-bottom:2rem;
+  font-family:var(--mono);
+  font-size:.78rem;
+  letter-spacing:.04em;
+  opacity:0;
+  animation:fadeUp .8s ease-out .6s forwards;
+}
+.hero-links a{
+  color:var(--text-secondary);
+  background-image:linear-gradient(var(--mauve) 0 0);
+  background-position:0 100%;
+  background-repeat:no-repeat;
+  background-size:0% 1px;
+  transition:background-size .25s ease,color .2s;
+  padding:.2rem 0;
+}
+.hero-links a:hover{color:var(--mauve);background-size:100% 1px}
+.hero-links .sep{
+  color:var(--rule);
+  margin:0 .7rem;
+}
+
+/* authors — single sans line, no superscript numerals */
+.authors-section{opacity:0;animation:fadeUp .8s ease-out .72s forwards}
+.authors-line{
+  font-family:var(--sans);
+  font-style:normal;
+  font-size:.95rem;
+  color:var(--text-secondary);
+  line-height:1.5;
+  margin-bottom:.25rem;
+  font-weight:400;
+  letter-spacing:.002em;
+}
+.author-chip{display:inline;white-space:nowrap}
+.author-chip + .author-chip::before{
+  content:"\2003";
+  font-style:normal;
+  margin:0;
+}
+
+/* shared dot separator */
+.hero-links .sep,
+.hero-venue .dot{
+  font-size:1.15em;
+  vertical-align:-0.08em;
+  line-height:1;
+  display:inline-block;
+  user-select:none;
+  pointer-events:none;
+  letter-spacing:0;
+}
+.author-chip .a-name{color:var(--text-primary)}
+.author-chip a.a-name{color:var(--text-primary);transition:color .2s;background-image:none;border-bottom:1px dotted var(--rule);padding-bottom:1px}
+.author-chip a.a-name:hover{color:var(--mauve);border-bottom-color:var(--mauve)}
+
+.affiliations-line{
+  font-family:var(--sans);
+  font-size:.82rem;
+  letter-spacing:.002em;
+  text-transform:none;
+  color:var(--text-dim);
+  margin-top:.1rem;
+  font-weight:400;
+}
+
+/* ───── Section / layout containers ───── */
+.article-wrapper{max-width:var(--max-w);margin:0 auto;padding:0 clamp(1.5rem,5vw,2.5rem)}
+.wide-wrapper{max-width:var(--wide-w);margin:0 auto;padding:0 clamp(1.5rem,5vw,2.5rem)}
+section{padding:4.5rem 0}
+section.tight{padding:2.5rem 0}
+
+/* Tufte typography — sans-serif headers (Lato) over the et-book serif
+   body. h2 gets the signature gilt-gradient underline (in green). */
+h1,h2,h3,h4,h5{color:var(--ink);font-weight:400;font-feature-settings:"kern","liga"}
+h2{
+  font-family:var(--sans);
+  font-style:normal;
+  font-size:clamp(1.75rem,3.2vw,2.1rem);
+  line-height:1.14;
+  font-weight:500;
+  letter-spacing:-.005em;
+  margin-bottom:1.4rem;
+  padding-bottom:.45rem;
+  position:relative;
+}
+h2::after{
+  content:"";
+  position:absolute;
+  left:0;right:0;bottom:0;
+  height:1px;
+  background:linear-gradient(to right,
+    var(--mauve-deep) 0%,
+    var(--mauve) 20%,
+    var(--rule) 55%,
+    transparent 100%);
+  opacity:.65;
+}
+html[data-theme="dark"] h2::after{opacity:.85}
+h2 em{color:var(--mauve-deep);font-family:inherit;font-style:normal;font-weight:inherit}
+h3{
+  font-family:var(--sans);
+  font-weight:500;
+  font-style:italic;
+  font-size:1.2rem;
+  color:var(--ink);
+  margin:2.2rem 0 .7rem;
+  letter-spacing:0;
+  line-height:1.3;
+}
+h3 em{font-family:inherit;font-style:normal;font-weight:inherit;color:var(--mauve-deep)}
+h4{
+  font-family:var(--sans);
+  font-weight:500;
+  font-style:normal;
+  font-size:.82rem;
+  color:var(--ink);
+  margin:1.4rem 0 .5rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+p{margin-bottom:1.1rem;color:var(--text-primary);font-size:1.15rem;line-height:1.55}
+p strong{color:var(--ink);font-weight:bold}
+p em{color:var(--ink)}
+.lead{font-size:1.15rem;line-height:1.55;color:var(--text-primary);margin-bottom:1.6rem}
+/* Section opener drop cap — illuminated capital. */
+.lead:not(.sub)::first-letter{
+  font-family:var(--serif-display);
+  float:left;
+  font-size:4.2rem;
+  line-height:.85;
+  padding:.35rem .55rem 0 0;
+  margin-top:.25rem;
+  color:var(--mauve);
+  font-weight:400;
+  font-style:normal;
+  text-shadow:
+    0 1px 0 var(--mauve-deep),
+    1px 0 0 var(--mauve-deep);
+}
+.lead:not(.sub):first-of-type::first-letter{
+  color:var(--mauve-deep);
+  text-shadow:
+    0 1px 0 var(--ink),
+    1px 0 0 var(--ink);
+}
+html[data-theme="dark"] .lead:not(.sub)::first-letter{
+  text-shadow:0 0 18px rgba(124,196,124,.30);
+}
+html[data-theme="dark"] .lead:not(.sub):first-of-type::first-letter{
+  color:var(--mauve-deep);
+  text-shadow:0 0 22px rgba(207,233,204,.32);
+}
+
+/* small-caps lede */
+.leadin{
+  font-variant:small-caps;
+  font-feature-settings:"smcp","kern","liga";
+  letter-spacing:.05em;
+  color:var(--ink);
+  font-weight:500;
+  margin-right:.15em;
+}
+.lead .leadin{font-weight:500}
+
+.section-num{font-family:var(--sans);font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--mauve);margin-bottom:.6rem;display:block;font-weight:500}
+
+/* Blockquote */
+blockquote{
+  margin:1.6rem 0;
+  padding:.3rem 0 .3rem 1.2rem;
+  border-left:2px solid var(--mauve);
+  color:var(--text-dim);
+  font-style:italic;
+  font-family:var(--serif);
+  font-size:1.05rem;
+  line-height:1.55;
+}
+blockquote p{margin:0 0 .6rem;color:inherit;font-size:inherit;line-height:inherit}
+blockquote p:last-child{margin-bottom:0}
+
+/* Inline code — unboxed, mono in mauve-deep, no background, no border. */
+.article-wrapper code,
+.wide-wrapper code,
+.lead code,
+p code,
+li code{
+  font-family:var(--mono);
+  font-size:.86em;
+  color:var(--mauve-deep);
+  background:none;
+  padding:0;
+  border-radius:0;
+  letter-spacing:0;
+}
+html[data-theme="dark"] .article-wrapper code,
+html[data-theme="dark"] .wide-wrapper code,
+html[data-theme="dark"] .lead code,
+html[data-theme="dark"] p code,
+html[data-theme="dark"] li code{
+  color:var(--mauve);
+}
+
+/* Ornamental dividers — ✣ glyph after the manuscript convention. */
+hr{
+  border:0;
+  text-align:center;
+  margin:3rem 0;
+  height:1rem;
+  line-height:1rem;
+}
+hr::before{
+  content:"✣";
+  color:var(--mauve-deep);
+  font-family:var(--serif);
+  font-size:1.1rem;
+  letter-spacing:.5em;
+  opacity:.85;
+}
+
+/* ───── Lists ───── */
+ul, ol{padding-left:1.4rem;margin:0 0 1.2em}
+li{margin-bottom:.4em;color:var(--text-primary);font-size:1.05rem;line-height:1.55}
+
+/* ───── Equation blocks ───── */
+.eq-block{
+  background:var(--bg-card);
+  border:1px solid var(--hairline-strong);
+  border-left:3px solid var(--mauve);
+  padding:1rem 1.3rem .9rem;
+  margin:1.4rem 0;
+  border-radius:2px;
+  font-size:.96rem;
+  position:relative;
+  overflow-x:auto;
+}
+.eq-label{
+  display:block;
+  font-family:var(--mono);
+  font-size:.66rem;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--mauve);
+  margin-bottom:.5rem;
+  font-weight:600;
+}
+
+/* ───── Callout — italic serif, left bar only, no card fill (Tufte) ───── */
+.callout{border-left:2px solid var(--mauve-deep);padding:.4rem 1.6rem;margin:2rem 0 2rem 1rem;background:none;border-radius:0;font-style:italic;color:var(--text-primary)}
+.callout .callout-label{display:block;font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--mauve);margin-bottom:.5rem;font-style:normal;font-weight:600}
+.callout p{margin-bottom:.6em;font-size:1.13rem;color:var(--ink);font-family:var(--serif);line-height:1.55;font-weight:400;font-style:italic}
+.callout p:last-child{margin-bottom:0}
+.callout p strong{font-style:normal;color:var(--ink);font-weight:600}
+.callout-cyan{border-left-color:var(--cyan);background:none}
+.callout-cyan .callout-label{color:var(--cyan)}
+.callout-warn{border-left-color:var(--gilt);background:none}
+.callout-warn .callout-label{color:var(--gilt)}
+
+/* ───── Theorem / definition / lemma / remark / proof boxes ─────
+   Classical math-text convention: header introduced by mono uppercase
+   label (e.g. "THEOREM 1") in green, thin mauve rule on the left, quiet
+   surface fill. Counters auto-increment per type within `.article-wrapper`. */
+.theorem,.definition,.lemma,.corollary,.proposition,.remark,.proof{
+  margin:1.6rem 0;
+  padding:.95rem 1.2rem .95rem 1.25rem;
+  border-left:2px solid var(--mauve);
+  background:var(--bg-surface);
+  color:var(--text-primary);
+  font-size:1.02rem;
+  line-height:1.55;
+  border-radius:0 3px 3px 0;
+}
+.theorem{counter-increment:theorem-counter}
+.definition{counter-increment:definition-counter}
+.lemma{counter-increment:lemma-counter}
+.corollary{counter-increment:corollary-counter}
+.proposition{counter-increment:proposition-counter}
+.remark{counter-increment:remark-counter}
+.theorem::before,.definition::before,.lemma::before,.corollary::before,.proposition::before,.remark::before,.proof::before{
+  font-family:var(--mono);
+  font-size:.72rem;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--mauve);
+  font-style:normal;
+  font-weight:600;
+  margin-right:.55em;
+}
+.theorem::before{content:"Theorem " counter(theorem-counter)}
+.definition::before{content:"Definition " counter(definition-counter)}
+.lemma::before{content:"Lemma " counter(lemma-counter)}
+.corollary::before{content:"Corollary " counter(corollary-counter)}
+.proposition::before{content:"Proposition " counter(proposition-counter)}
+.remark::before{content:"Remark " counter(remark-counter)}
+.proof::before{content:"Proof"}
+/* optional italic name beside the header, e.g. "(continuous adjoint…)" */
+.thm-title{
+  font-family:var(--serif-display,var(--serif));
+  font-style:italic;
+  font-size:.95rem;
+  color:var(--mauve-deep);
+  letter-spacing:0;
+  text-transform:none;
+}
+.thm-title::before{content:"("}
+.thm-title::after{content:")\A";white-space:pre-line}
+/* if no thm-title, break the header onto its own line so prose starts fresh */
+.theorem:not(:has(.thm-title))::before,
+.definition:not(:has(.thm-title))::before,
+.lemma:not(:has(.thm-title))::before,
+.corollary:not(:has(.thm-title))::before,
+.proposition:not(:has(.thm-title))::before,
+.remark:not(:has(.thm-title))::before{
+  display:block;
+  margin-bottom:.4rem;
+}
+.theorem em,.theorem i,.definition em,.definition i,.lemma em,.lemma i,.proposition em,.proposition i{font-style:italic}
+.proof{
+  border-left-color:var(--rule);
+  background:none;
+  font-size:.98rem;
+  color:var(--text-dim);
+}
+.proof::after{content:" ▮";color:var(--mauve)}
+
+/* ───── Comparison tables ───── */
+.cmp-table-wrap{margin:1.6rem 0;overflow-x:auto;border:1px solid var(--hairline);border-radius:2px;background:var(--bg-card)}
+table.cmp{
+  width:100%;border-collapse:collapse;
+  font-family:var(--serif);font-size:.93rem;
+  font-feature-settings:"onum","tnum";
+}
+table.cmp caption{
+  caption-side:top;text-align:left;
+  font-family:var(--sans);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--text-dim);padding:.7rem 1rem .3rem;font-weight:600;
+}
+table.cmp thead th{
+  font-family:var(--sans);font-size:.72rem;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--text-secondary);
+  padding:.65rem .9rem;border-bottom:1.5px solid var(--rule);
+  text-align:left;background:var(--bg-deep);
+}
+table.cmp thead th.num{text-align:right}
+table.cmp tbody td{
+  padding:.55rem .9rem;
+  border-bottom:1px solid var(--hairline);
+  font-variant-numeric:tabular-nums;
+}
+table.cmp tbody td.num{text-align:right}
+table.cmp tbody td.best{text-align:right;color:var(--mauve);font-weight:600}
+table.cmp tbody tr:last-child td{border-bottom:none}
+table.cmp tbody tr.row-baseline td{color:var(--text-tertiary);font-style:italic}
+table.cmp tbody tr.row-rex td{background:rgba(63,125,59,.06);color:var(--mauve-deep)}
+table.cmp tbody tr.row-rex td:first-child{font-weight:600}
+.cmp-note{font-size:.86rem;color:var(--text-dim);font-style:italic;margin-top:.5rem;line-height:1.55}
+
+/* ───── Metric pills ───── */
+.metric-row{display:flex;gap:1rem;flex-wrap:wrap;margin:1.8rem 0 2rem}
+.metric-pill{
+  flex:1;min-width:160px;
+  background:var(--bg-card);
+  border:1px solid var(--hairline-strong);
+  border-radius:8px;padding:1rem 1.2rem;
+  box-shadow:var(--shadow-sm);
+}
+.metric-pill .mp-key{
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text-dim);margin-bottom:.4rem;
+}
+.metric-pill .mp-val{font-family:var(--serif);font-size:1.7rem;color:var(--mauve);line-height:1.1}
+.metric-pill .mp-val.cyan{color:var(--cyan)}
+.metric-pill .mp-val.deep{color:var(--mauve-deep)}
+.metric-pill .mp-note{font-size:.74rem;color:var(--text-secondary);margin-top:.3rem}
+
+/* ───── Contribution grid (takeaways) ───── */
+.contrib-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:1.2rem;margin:1.8rem 0 1rem;
+}
+.contrib-item{
+  background:var(--bg-card);
+  border:1px solid var(--hairline-strong);
+  border-radius:4px;padding:1.2rem 1.3rem 1.1rem;
+  box-shadow:var(--shadow-sm);
+  position:relative;
+  transition:border-color .2s,transform .2s,box-shadow .2s;
+}
+.contrib-item:hover{border-color:var(--mauve-soft);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.contrib-num{
+  font-family:var(--mono);font-size:.66rem;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--mauve);margin-bottom:.55rem;font-weight:600;
+}
+.contrib-title{font-family:var(--serif);font-size:1.05rem;font-style:italic;color:var(--mauve-deep);margin-bottom:.5rem;line-height:1.3}
+.contrib-desc{font-size:.9rem;color:var(--text-secondary);line-height:1.55}
+
+/* ───── Contributions list — ported from greedydim, used in §06 ───── */
+.contributions-list{
+  list-style:none;
+  padding:0;
+  margin:1.2rem 0 1.6rem;
+  border-top:1px solid var(--hairline);
+}
+.contributions-list > li{
+  padding:.9rem 0;
+  border-bottom:1px solid var(--hairline);
+  font-size:1rem;
+  line-height:1.55;
+  color:var(--text-primary);
+}
+.contributions-list > li strong{
+  color:var(--ink);
+  font-weight:600;
+}
+
+/* ───── Inline (Author, Year) citations — rendered by citations.js
+   into <span class="cite-inline"><a class="cite-link"…>…</a></span> at
+   every <span class="cite" data-key="…"> site. Serif + dotted underline
+   keeps the citation visually subordinate to the running prose. */
+.cite-inline{
+  font-family:var(--serif);
+  font-size:.94em;
+  color:var(--text-secondary);
+  white-space:normal;
+}
+.cite-inline a.cite-link{
+  color:var(--text-secondary);
+  text-decoration:none;
+  border-bottom:1px dotted var(--rule);
+  padding-bottom:1px;
+  background-image:none;
+  transition:color .12s ease, border-color .12s ease;
+}
+.cite-inline a.cite-link:hover{
+  color:var(--mauve);
+  border-bottom-color:var(--mauve);
+  background-size:0% 1px;
+}
+.cite-missing{color:#a33;font-style:italic}
+.cite-inline{scroll-margin-top:2rem}
+.cite-inline:target{
+  background:var(--mauve-pale);
+  padding:.05em .2em;
+  border-radius:2px;
+  outline:1px solid var(--mauve);
+  outline-offset:.05rem;
+}
+
+/* ─── Auto-built References section. The <ol class="bib-list"> is
+   populated by citations.js; each entry gets a numbered marker via CSS
+   counter and a row of §-anchored back-references to its prose sites. */
+.references{
+  padding:3rem 0 1rem;
+  background:var(--bg-deep);
+  border-top:1px solid var(--rule);
+}
+.references > .article-wrapper > h2{
+  font-family:var(--serif);
+  font-size:1.55rem;
+  font-weight:500;
+  letter-spacing:.005em;
+  color:var(--ink);
+  margin-bottom:1.2rem;
+  padding-bottom:.4rem;
+  position:relative;
+}
+.references > .article-wrapper > h2::after{
+  content:"";
+  position:absolute;
+  left:0;bottom:0;
+  width:2.4rem;height:1px;
+  background:var(--mauve);
+  opacity:1;
+}
+ol.bib-list{
+  list-style:none;
+  padding:0;margin:0;
+  counter-reset:bib-counter;
+}
+ol.bib-list > li.bib-entry{
+  counter-increment:bib-counter;
+  position:relative;
+  padding:.5rem 0 .5rem 2.4rem;
+  font-family:var(--serif);
+  font-size:.94rem;
+  line-height:1.5;
+  color:var(--text-primary);
+  border-bottom:1px solid var(--hairline);
+}
+ol.bib-list > li.bib-entry:last-child{border-bottom:none}
+ol.bib-list > li.bib-entry::before{
+  content:counter(bib-counter) ".";
+  position:absolute;
+  left:0;top:.5rem;
+  width:2rem;
+  font-family:var(--mono);
+  font-size:.78rem;
+  color:var(--mauve);
+  text-align:right;
+  letter-spacing:.04em;
+  font-weight:500;
+}
+.bib-entry em{font-style:italic;color:var(--ink)}
+.bib-entry a{
+  color:var(--mauve-deep);
+  text-decoration:none;
+  background-image:none;
+  border-bottom:1px solid var(--hairline-strong);
+}
+.bib-entry a:hover{color:var(--mauve);border-bottom-color:var(--mauve)}
+.bib-entry{scroll-margin-top:1rem}
+.bib-entry:target{
+  background:var(--mauve-pale);
+  outline:1px solid var(--mauve);
+  outline-offset:.3rem;
+}
+.bib-backrefs{
+  margin-left:.4em;
+  font-family:var(--mono);
+  font-size:.74rem;
+  color:var(--text-dim);
+  letter-spacing:.02em;
+  white-space:nowrap;
+}
+.bib-backrefs a.bib-backref{
+  color:var(--text-dim);
+  text-decoration:none;
+  background-image:none;
+  border:none;
+  padding:0 .05em;
+}
+.bib-backrefs a.bib-backref:hover{color:var(--mauve)}
+
+/* divider — ornamental flourish (Tufte / academic-blog idiom).
+   The legacy <div class="divider"><div class="divider-line"></div></div>
+   markup renders a single centered ✣ glyph in mauve. */
+.divider{
+  width:100%;
+  max-width:var(--max-w);
+  margin:0 auto;
+  padding:1.6rem clamp(1.5rem,5vw,2.5rem);
+  text-align:center;
+  line-height:1rem;
+}
+.divider::before{
+  content:"✣";
+  color:var(--mauve);
+  font-size:1.05rem;
+  letter-spacing:.5em;
+  opacity:.85;
+}
+.divider-line{display:none}
+
+/* ───── radar / spider chart ───── */
+.radar-wrap{margin:2.4rem 0 1rem;padding:1.6rem 1.2rem;background:var(--bg-card);border:1px solid var(--hairline);border-radius:2px;position:relative}
+.radar-svg{width:100%;max-width:560px;display:block;margin:0 auto;font-family:var(--serif)}
+.radar-svg .grid-poly{fill:none;stroke:var(--hairline-strong);stroke-width:.7}
+.radar-svg .grid-poly-major{fill:none;stroke:var(--rule);stroke-width:.8}
+.radar-svg .axis-spoke{stroke:var(--hairline-strong);stroke-width:.7}
+.radar-svg .axis-tick-label{font-family:var(--mono);font-size:8px;fill:var(--text-dim)}
+.radar-svg .axis-label{font-family:var(--sans);font-size:11px;font-weight:500;fill:var(--text-secondary);letter-spacing:.04em}
+.radar-svg .axis-sub{font-family:var(--mono);font-size:8.5px;fill:var(--text-dim);letter-spacing:.08em;text-transform:uppercase}
+.radar-svg .solver-poly{fill:none;stroke-width:1.4;stroke-linejoin:round;opacity:.85;transition:d .9s cubic-bezier(.4,0,.2,1),stroke-width .25s,opacity .25s}
+.radar-svg .solver-poly.is-rex{stroke-width:2;opacity:1}
+.radar-svg .solver-poly.is-rex-em{stroke-width:2.2;opacity:1}
+.radar-svg .solver-fill-rex-em{fill:var(--mauve);opacity:.07;transition:d .9s cubic-bezier(.4,0,.2,1)}
+.radar-svg .solver-poly:hover{stroke-width:2.6;opacity:1}
+.radar-legend{display:flex;flex-wrap:wrap;gap:.5rem 1.4rem;justify-content:center;margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--hairline)}
+.radar-legend .li{display:flex;align-items:center;gap:.45rem;font-family:var(--sans);font-size:.74rem;color:var(--text-secondary);font-weight:500;letter-spacing:.03em;cursor:pointer;transition:opacity .2s;user-select:none}
+.radar-legend .li:hover{opacity:.6}
+.radar-legend .li.dimmed{opacity:.25}
+.radar-svg .solver-poly.is-baseline{stroke-width:1;opacity:.7}
+.radar-legend .swatch{width:18px;height:2px;display:inline-block;flex-shrink:0}
+.radar-legend .swatch.dashed{background:repeating-linear-gradient(90deg,currentColor 0 5px,transparent 5px 8px);height:2.5px}
+.radar-legend .swatch.solid{background:currentColor}
+/* radar flip-card: front shows the radar; back shows the raw paper data */
+.radar-flip-toolbar{position:absolute;top:1rem;right:1rem;z-index:3;display:flex;gap:.4rem}
+.radar-flip-btn{font-family:var(--sans);font-size:.66rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:.4rem .8rem;background:var(--bg-card);border:1px solid var(--rule);color:var(--mauve-deep);border-radius:20px;cursor:pointer;transition:background .2s ease,border-color .2s ease,color .2s ease;display:inline-flex;align-items:center;gap:.45rem;box-shadow:0 1px 3px rgba(63,125,59,.06)}
+.radar-flip-btn:hover{background:var(--mauve-pale);border-color:var(--mauve);color:var(--mauve)}
+.radar-flip-btn:focus-visible{outline:2px solid var(--mauve);outline-offset:2px}
+.radar-flip-btn svg{width:12px;height:12px;flex-shrink:0;transition:transform .45s cubic-bezier(.4,0,.2,1)}
+.radar-wrap.is-flipped .radar-flip-btn svg{transform:rotate(180deg)}
+.radar-flip-stage{position:relative}
+.radar-face{transition:transform .35s cubic-bezier(.55,0,.65,1),opacity .25s ease;transform-origin:center center;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.radar-face.is-out{transform:rotateY(90deg);opacity:0;pointer-events:none}
+.radar-face[hidden]{display:none !important}
+.radar-face-back{padding-top:2.4rem}
+.radar-data-table{width:100%;border-collapse:collapse;font-size:.86rem;font-family:var(--serif);font-feature-settings:"onum","tnum"}
+.radar-data-table caption{caption-side:top;font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);margin-bottom:.8rem;font-family:var(--sans);font-weight:500}
+.radar-data-table thead th{font-family:var(--sans);font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);padding:.5rem .6rem;border-bottom:1.5px solid var(--rule);text-align:right}
+.radar-data-table thead th.tcol-text{text-align:left}
+.radar-data-table tbody td{padding:.42rem .6rem;border-bottom:1px solid var(--hairline);text-align:right;font-variant-numeric:tabular-nums}
+.radar-data-table tbody td:first-child{text-align:left;color:var(--text-secondary)}
+.radar-data-table tbody tr.is-rex td{color:var(--mauve-deep);font-weight:500}
+.radar-data-table tbody tr.is-rex td:first-child{color:var(--mauve)}
+.radar-data-table .best{color:var(--mauve);font-weight:600}
+.radar-data-table .second{color:var(--mauve-bright)}
+@media (max-width:680px){.radar-data-table{font-size:.78rem}.radar-data-table thead th,.radar-data-table tbody td{padding:.45rem .5rem}}
+
+/* ───── Reveal-on-scroll ───── */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s ease, transform .7s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* ───── Figures ───── */
+figure{margin:1.6rem 0}
+figure img{display:block;max-width:100%;height:auto;border:1px solid var(--hairline);border-radius:2px}
+figcaption{font-size:.86rem;color:var(--text-dim);font-style:italic;margin-top:.7rem;line-height:1.55;text-align:center}
+figcaption .figlabel{font-style:normal;font-family:var(--sans);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mauve);font-weight:600;margin-right:.4rem}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Tufte-style sidenotes / margin notes — ported verbatim from greedydim.
+   sidenote-counter is global (lives on body) so numbering increments
+   continuously across every .article-wrapper section.
+   ═══════════════════════════════════════════════════════════════════ */
+body{counter-reset:sidenote-counter sidenote-aside-counter}
+.article-wrapper{
+  position:relative;
+  counter-reset:theorem-counter definition-counter lemma-counter corollary-counter proposition-counter remark-counter;
+}
+
+/* ─── Marker, sidenote/marginnote base typography ───────────────── */
+.sidenote-number{
+  counter-increment:sidenote-counter;
+  font-family:var(--mono);
+  font-size:.7em;
+  color:var(--mauve);
+  cursor:pointer;
+  vertical-align:super;
+  line-height:1;
+  letter-spacing:.02em;
+  padding:0 .05em;
+}
+.sidenote-number::before{content:counter(sidenote-counter)}
+label.margin-toggle-label{cursor:pointer}
+input.margin-toggle{position:absolute;left:-9999px;width:0;height:0}
+
+.sidenote,.marginnote,.margin-caption{
+  font-family:var(--serif);
+  font-size:.92rem;
+  line-height:1.45;
+  color:var(--text-secondary);
+}
+.sidenote em,.marginnote em,.margin-caption em{font-style:italic}
+.sidenote strong,.marginnote strong,.margin-caption strong{color:var(--ink);font-weight:600}
+.sidenote a,.marginnote a,.margin-caption a{color:var(--mauve-deep)}
+.margin-caption{
+  color:var(--text-dim);
+  font-style:italic;
+  font-size:.88rem;
+  line-height:1.5;
+}
+/* Caption label — bold sans "Figure N." / "Table N." in mauve that
+   prefixes the italic-serif caption body inside margin-captions. */
+.margin-caption .figlabel{
+  font-family:var(--sans);
+  font-style:normal;
+  font-weight:700;
+  font-size:.88rem;
+  letter-spacing:0;
+  text-transform:none;
+  color:var(--mauve);
+  margin-right:.4em;
+}
+
+/* ─── Wide layout: CSS Grid two-column layout ────────────────────
+   .article-wrapper becomes a grid: prose column | gutter column.
+   All prose/figures/tables sit in column 1; sidenotes are hoisted
+   to direct children of .article-wrapper and placed in column 3. */
+@media (min-width:1024px){
+  .article-wrapper{
+    display:grid;
+    grid-template-columns:minmax(0,42rem) 2rem 16rem;
+    grid-auto-rows:min-content;
+    column-gap:0;
+    row-gap:.2rem;
+    max-width:none;
+    width:min(74rem, calc(100% - 2rem));
+    padding-left:clamp(1.5rem,5vw,2.5rem);
+    padding-right:clamp(1.5rem,5vw,2.5rem);
+    margin-left:auto;margin-right:auto;
+  }
+  /* every direct child defaults to column 1 (prose) */
+  .article-wrapper > *{grid-column:1}
+  /* gutter items: sidenotes and figure captions live in column 3 */
+  .article-wrapper > .sidenote,
+  .article-wrapper > .marginnote,
+  .article-wrapper > .margin-caption{
+    grid-column:3;
+    margin:.3rem 0 0;
+    align-self:start;
+  }
+  /* sidenote leading number — auto-counter glyph.
+     The aside drives its own counter so that, even when two markers sit in the
+     same paragraph (so both increment sidenote-counter before the first aside
+     renders), each aside still reads its own ordinal in document order. */
+  .article-wrapper > .sidenote{counter-increment:sidenote-aside-counter}
+  .article-wrapper > .sidenote::before{
+    content:counter(sidenote-aside-counter);
+    font-family:var(--mono);
+    font-size:.7rem;
+    color:var(--mauve);
+    vertical-align:super;
+    margin-right:.3em;
+    font-weight:500;
+  }
+  /* lift overflow on table wrapper so any inner content can still
+     be visually adjacent to its caption-aside in the gutter */
+  .article-wrapper > .cmp-table-wrap{overflow:visible}
+}
+@media (min-width:1200px){
+  .article-wrapper{
+    grid-template-columns:minmax(0,42rem) 2.5rem 19rem;
+  }
+}
+
+/* ─── Narrow screens (<1024px): collapse the gutter ────────────── */
+@media (max-width:1023px){
+  .sidenote,.marginnote{
+    display:none;
+    background:var(--mauve-pale);
+    border-left:2px solid var(--mauve);
+    padding:.55rem .75rem;
+    margin:.6rem 0;
+    border-radius:0 2px 2px 0;
+  }
+  .margin-toggle:checked + .sidenote,
+  .margin-toggle:checked + .marginnote{display:block}
+  .margin-caption{
+    margin:.6rem 0 1.2rem;
+    padding-left:1rem;
+    border-left:1px solid var(--hairline);
+  }
+}
+
+/* ───── Footer ───── */
+.site-footer{border-top:1px solid var(--rule);padding:4rem 0 3rem;background:var(--bg-surface);font-family:var(--sans)}
+.site-footer p,.site-footer a,.site-footer li,.site-footer em,.site-footer i{font-family:var(--sans)}
+.footer-grid{
+  display:grid;
+  grid-template-columns:1.5fr .85fr .9fr;
+  gap:2.5rem;
+  max-width:var(--wide-w);margin:0 auto;
+  padding:0 clamp(1.5rem,5vw,2.5rem);
+}
+.footer-col h4{
+  font-family:var(--mono);font-size:.95rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text-primary);
+  margin-bottom:1.1rem;font-weight:500;
+}
+.footer-col p,.footer-col a{font-size:.84rem;color:var(--text-secondary);line-height:1.65}
+.footer-col a{color:var(--mauve-deep);transition:color .2s;text-decoration:none}
+.footer-col a:hover{color:var(--mauve)}
+.footer-links{list-style:none;padding:0;margin:0}
+.footer-links li{margin-bottom:.5rem}
+.footer-links a{font-size:.84rem;display:inline-flex;align-items:center;gap:.45rem}
+
+.citation-block{
+  background:var(--bg-card);
+  border:1px solid var(--hairline-strong);
+  border-radius:8px;
+  padding:.85rem 1.05rem;
+  font-family:var(--mono);
+  font-size:.68rem;
+  line-height:1.6;
+  color:var(--text-dim);
+  margin-top:.7rem;
+  cursor:pointer;
+  position:relative;
+  transition:border-color .2s, background .2s;
+  white-space:pre-wrap;
+  word-break:break-word;
+  overflow-x:auto;
+}
+.citation-block:hover{border-color:var(--mauve)}
+.citation-block .copy-hint{
+  position:absolute;top:.55rem;right:.75rem;
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--mauve);opacity:0;transition:opacity .2s;
+  background:var(--bg-card);padding:.05rem .35rem;border-radius:2px;
+}
+.citation-block:hover .copy-hint{opacity:.85}
+.citation-block.copied .copy-hint{opacity:1;color:var(--mauve-deep)}
+.citation-block pre{margin:0;font:inherit;color:inherit;white-space:inherit;word-break:inherit;background:none;padding:0;border:0}
+html[data-theme="dark"] .citation-block{background:var(--bg-deep);border-color:var(--hairline-strong)}
+html[data-theme="dark"] .citation-block .copy-hint{background:var(--bg-deep)}
+
+.footer-bottom{
+  margin-top:2.8rem;padding-top:1.4rem;border-top:1px solid var(--rule);
+  text-align:center;font-size:.76rem;color:var(--text-dim);
+  max-width:var(--wide-w);margin-left:auto;margin-right:auto;
+  padding-left:clamp(1.5rem,5vw,2.5rem);
+  padding-right:clamp(1.5rem,5vw,2.5rem);
+}
+
+@media (max-width:780px){
+  .footer-grid{grid-template-columns:1fr}
+  .contrib-grid{grid-template-columns:1fr}
+  .metric-row .metric-pill{min-width:140px}
+}
+@media (max-width:680px){
+  html{font-size:15.5px}
+  .hero{padding-top:3.5rem;padding-bottom:2.5rem}
+}
+
+/* dark-mode targeted overrides */
+html[data-theme="dark"] .radar-svg .solver-fill-rex-em{fill:var(--mauve)}
+html[data-theme="dark"] .divider-line::after{background:var(--paper)}
+</style>
 </head>
 <body>
 
+<div class="scroll-progress" id="scrollProg"></div>
 
-  <section class="hero">
-    <div class="hero-body">
-      <div class="container is-max-desktop">
-        <div class="columns is-centered">
-          <div class="column has-text-centered">
-            <h1 class="title is-1 publication-title">
-              AdjointDEIS: Efficient Gradients for Diffusion Models
-            </h1>
-            <div class="is-size-5 publication-authors">
-              <!-- Paper authors -->
-              <span class="author-block">
-                <a href="https://zblasingame.github.io/" target="_blank">Zander W. Blasingame</a> and </span>
-                <span class="author-block">
-                  <a href="https://camel.clarkson.edu/members.html" target="_blank">Chen Liu</a></span>
-                  </div>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" aria-pressed="false" title="Toggle dark mode">
+  <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/><line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/><line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/><line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/></svg>
+</button>
 
-                  <div class="is-size-5 publication-authors">
-                    <span class="author-block">Clarkson University</span>
-                  </div>
+<!-- ───── HERO ───── -->
+<header class="hero">
+  <div class="hero-content">
+    <span class="hero-venue">NeurIPS 2024</span>
+    <h1 class="hero-title"><span class="rex">AdjointDEIS</span>: Efficient Gradients for Diffusion Models</h1>
+    <div class="hero-title-rule"></div>
+    <p class="hero-sub">
+      Guided generation and inverse problems require gradients of a loss with respect to inputs of a diffusion sampler.
+      Storing every U&#8209;Net activation along the trajectory is prohibitive in memory; the continuous adjoint method avoids this by solving a backward differential equation,
+      but the adjoint equation is itself stiff.
+      In this work we propose <strong>AdjointDEIS</strong>, a family of <em>exponential&#8209;integrator</em> solvers for the continuous adjoint equations of diffusion ODEs and SDEs.
+      AdjointDEIS attains $\mathcal{O}(1)$ memory in solver length and $k$-th order convergence; en route we prove that the continuous adjoint of a diffusion SDE with state&#8209;independent diffusion coefficient reduces to a deterministic ODE.
+    </p>
+    <div class="hero-links">
+      <a href="https://arxiv.org/abs/2405.15020" target="_blank">paper</a>
+      <span class="sep" aria-hidden="true">&bull;</span>
+      <a href="https://proceedings.neurips.cc/paper_files/paper/2024/hash/04badd3b048315c8c3a0ca17eff723d7-Abstract-Conference.html" target="_blank">proceedings</a>
+      <span class="sep" aria-hidden="true">&bull;</span>
+      <a href="https://openreview.net/forum?id=fAlcxvrOEX" target="_blank">openreview</a>
+      <span class="sep" aria-hidden="true">&bull;</span>
+      <a href="https://github.com/zblasingame/AdjointDEIS" target="_blank">code</a>
+      <span class="sep" aria-hidden="true">&bull;</span>
+      <a href="#cite">bibtex</a>
+    </div>
 
-                <div class="is-size-5 publication-authors">
-                    <span class="author-block"><b>NeurIPS 2024 (Poster)</b></span>
-                  </div>
+    <div class="authors-section">
+      <div class="authors-line">
+        <span class="author-chip"><a class="a-name" href="https://zblasingame.github.io" target="_blank">Zander W. Blasingame</a></span>
+        <span class="author-chip"><a class="a-name" href="https://camel.clarkson.edu/members.html" target="_blank">Chen Liu</a></span>
+      </div>
+      <div class="affiliations-line">Clarkson University</div>
+    </div>
+  </div>
+</header>
 
+<!-- ───── §01 THE PROBLEM ───── -->
+<section id="problem">
+  <div class="article-wrapper">
+    <span class="section-num reveal">01 &mdash; Introduction</span>
+    <h2 class="reveal">Gradients through a diffusion sampler are expensive in memory</h2>
 
-                  <div class="column has-text-centered">
-                    <div class="publication-links">
-                      <!-- Arxiv PDF link -->
-                      <span class="link-block">
-                        <a href="https://openreview.net/pdf?id=fAlcxvrOEX" target="_blank"
-                        class="external-link button is-normal is-rounded is-dark">
-                        <span class="icon">
-                          <i class="fas fa-file-pdf"></i>
-                        </span>
-                        <span>Paper</span>
-                      </a>
-                    </span>
+    <p class="lead reveal"><span class="leadin">A diffusion model</span> learns to invert a noising process by training a denoiser $\boldsymbol\epsilon_\theta$. Sampling at inference time amounts to numerically solving the probability&#8209;flow ODE<span class="cite" data-key="song2021"></span> &mdash; or its stochastic counterpart &mdash; from $t=T$ down to $t=0$ with a fast solver such as DPM&#8209;Solver<span class="cite" data-key="dpmsolver"></span> or DEIS<span class="cite" data-key="deis"></span>. Each solver step calls the U&#8209;Net once;<label for="sn-nfe" class="margin-toggle-label sidenote-number"></label> modern samplers produce strong image quality in $N \approx 10$ to $50$ steps.</p>
+    <input type="checkbox" id="sn-nfe" class="margin-toggle"/>
+    <aside class="sidenote">A single U&#8209;Net forward pass is the unit of cost throughout the paper &mdash; <em>NFE</em>, number of function evaluations. An "$N$&#8209;step sampler" means $N$ NFEs forward; an adjoint sweep adds another $M$ NFEs backward.</aside>
 
-                 <!-- ArXiv abstract Link -->
-                <span class="link-block">
-                  <a href="https://arxiv.org/abs/2405.15020" target="_blank"
-                  class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                    <i class="ai ai-arxiv"></i>
-                  </span>
-                  <span>arXiv</span>
-                </a>
-              </span>
+    <p class="reveal">For many downstream tasks &mdash; guided generation<span class="cite" data-key="dps"></span><span class="cite" data-key="freedom"></span><span class="cite" data-key="mpgd"></span><span class="cite" data-key="doodl"></span>, latent optimization<span class="cite" data-key="cyclediffusion"></span>, and inverse&#8209;problem solvers &mdash; the quantity of interest is not the sample itself but the <em>gradient</em> of some loss $\mathcal{L}(\boldsymbol x_0)$ with respect to an upstream variable: the initial latent $\boldsymbol x_T$, the conditioning vector $\boldsymbol z$, or the model parameters $\theta$. Discretize&#8209;then&#8209;optimize (DTO) is the direct approach: unroll the $N$&#8209;step trajectory as a computation graph, store every U&#8209;Net activation, and backpropagate.<label for="sn-dto" class="margin-toggle-label sidenote-number"></label> Whilst correct, this incurs $\mathcal{O}(N)$ memory in the number of solver steps, which is prohibitive on large image models.</p>
+    <input type="checkbox" id="sn-dto" class="margin-toggle"/>
+    <aside class="sidenote">"DTO" is shorthand for the autodiff&#8209;through&#8209;the&#8209;solver recipe: unroll the $N$&#8209;step trajectory as a deep computation graph and call <code>.backward()</code>. Cheap to implement, expensive to run.</aside>
 
-                      
-               <!-- Github link -->
-                <span class="link-block">
-                  <a href="https://github.com/zblasingame/AdjointDEIS" target="_blank"
-                  class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                    <i class="fab fa-github"></i>
-                  </span>
-                  <span>Code</span>
-                </a>
-              </span>
+    <div class="callout reveal">
+      <span class="callout-label">The quantity of interest</span>
+      <p>We want $\nabla_{\!\boldsymbol x_T,\boldsymbol z,\theta}\,\mathcal{L}\!\big(\boldsymbol x_0(\boldsymbol x_T,\boldsymbol z,\theta)\big)$, where $\boldsymbol x_0$ is produced by an $N$&#8209;step diffusion sampler &mdash; computed cheaply enough to sit inside an optimization loop, and accurately enough to descend the loss.</p>
+    </div>
 
-                <span class="link-block">
-                  <a href="#BibTeX" target="_blank"
-                  class="external-link button is-normal is-rounded is-dark">
-                  <span class="icon">
-                    <i class="fa fa-quote-left"></i>
-                  </span>
-                  <span>Cite</span>
-                </a>
-              </span>
+    <p class="reveal">An alternative is the <em>continuous adjoint method</em><label for="sn-pontryagin" class="margin-toggle-label sidenote-number"></label> &mdash; Pontryagin's adjoint construction, brought into deep learning by Chen et al.'s Neural ODEs<span class="cite" data-key="neuralode"></span>. Rather than storing the forward trajectory, one solves a <em>second</em> ODE backwards in time whose state is the gradient. The memory cost is $\mathcal{O}(1)$ in $N$.</p>
+    <input type="checkbox" id="sn-pontryagin" class="margin-toggle"/>
+    <aside class="sidenote">Pontryagin's <em>maximum principle</em> (1956)<span class="cite" data-key="pontryagin"></span> is the optimal&#8209;control ancestor; the modern statement &mdash; that the gradient satisfies a linear ODE running backwards in time &mdash; is the basis of every continuous adjoint method since.</aside>
 
-            </div>
-          </div>
-        </div>
+    <p class="reveal">AdjointDPM<span class="cite" data-key="adjointdpm"></span> applied this construction to deterministic diffusion samplers. Two questions were left open, and are precisely what this paper addresses:</p>
+
+    <ul class="reveal">
+      <li><strong>The stochastic case.</strong> The continuous&#8209;adjoint construction for SDEs is substantially subtler than for ODEs, and the stochastic samplers used in practice fall outside AdjointDPM's scope.</li>
+      <li><strong>The adjoint equation is itself stiff.</strong> DPM&#8209;Solver and DEIS exist because the <em>forward</em> diffusion ODE is stiff; a naive backward solver inherits the same problem and leaves accuracy on the table. What is the right discretization for the adjoint?</li>
+    </ul>
+  </div>
+</section>
+
+<div class="divider"><div class="divider-line"></div></div>
+
+<!-- ───── §02 SDE ADJOINT = ODE ───── -->
+<section id="theorem">
+  <div class="article-wrapper">
+    <span class="section-num reveal">02 &mdash; A structural result</span>
+    <h2 class="reveal">The continuous adjoint of a diffusion SDE is a deterministic ODE</h2>
+
+    <p class="lead reveal"><span class="leadin">Lifting the Neural&#8209;ODE</span> adjoint construction from ODEs to SDEs would, in general, yield a backward equation that is itself stochastic, inheriting the variance and discretization difficulties of the forward process. We show that for the SDEs that arise in diffusion models, this does not happen: the backward equation is deterministic.</p>
+
+    <p class="reveal">The forward diffusion SDE in It&ocirc; form is</p>
+
+    <div class="eq-block"><span class="eq-label">Forward diffusion SDE</span>
+      $$d\boldsymbol x_t \;=\; \boldsymbol f(\boldsymbol x_t,t)\,dt \;+\; g(t)\,d\boldsymbol w_t,$$
+    </div>
+
+    <p class="reveal">with drift $\boldsymbol f$ and a <em>state&#8209;independent</em> diffusion coefficient $g(t)$.<label for="sn-stateind" class="margin-toggle-label sidenote-number"></label> This is the regime of essentially every modern diffusion model &mdash; the VP and VE SDEs of Song et al.<span class="cite" data-key="song2021"></span>, EDM, and so on. The Stratonovich form of the same equation differs from It&ocirc; only by an It&ocirc;&#8211;Stratonovich correction $-\tfrac{1}{2}g(t)g'(t)$, which is itself deterministic.</p>
+    <input type="checkbox" id="sn-stateind" class="margin-toggle"/>
+    <aside class="sidenote">The state&#8209;independence of $g$ is the key hypothesis of Theorem 3.1. If $g$ depended on $\boldsymbol x$, the chain rule through $g(\boldsymbol x,t)\,d\boldsymbol w$ would carry a stochastic term into the adjoint and the reduction to a deterministic ODE would fail.</aside>
+
+    <div class="theorem reveal">
+      <span class="thm-title">continuous adjoint of a diffusion SDE</span>Let $\boldsymbol x_t$ solve the diffusion SDE above with state&#8209;independent $g(t)$, written in Stratonovich form, and let $\boldsymbol a_t = \partial \mathcal{L}/\partial \boldsymbol x_t$ denote the adjoint state. Then $\boldsymbol a_t$ satisfies the deterministic backward ODE
+      $$\dot{\boldsymbol a}_t \;=\; -\,\boldsymbol a_t^{\!\top}\,\partial_{\boldsymbol x}\boldsymbol f(\boldsymbol x_t, t).$$
+      <p style="margin:.6em 0 0">No stochastic term appears. The same statement holds for the parameter and conditioning adjoints.</p>
+    </div>
+
+    <p class="reveal">The argument is short. In Stratonovich form<label for="sn-strat" class="margin-toggle-label sidenote-number"></label> the chain rule reduces to ordinary calculus, and since $g(t)$ does not depend on $\boldsymbol x$ we have $\partial_{\boldsymbol x}\big(g(t)\,d\boldsymbol w_t\big)\equiv 0$. The stochastic term contributes nothing to the adjoint dynamics. The forward trajectory $\boldsymbol x_t$ appearing on the right&#8209;hand side is recovered by integrating the diffusion SDE backwards from $\boldsymbol x_0$, or in practice by storing $\boldsymbol x_T$ together with a small number of waypoints.</p>
+    <input type="checkbox" id="sn-strat" class="margin-toggle"/>
+    <aside class="sidenote">In It&ocirc; calculus the chain rule carries an extra $\tfrac{1}{2}\partial^2$ term; in Stratonovich it does not. For state&#8209;independent diffusion, the two formulations differ only by a deterministic drift correction, so the change of convention is essentially free.</aside>
+
+    <div class="callout reveal">
+      <span class="callout-label">Consequence for discretization</span>
+      <p>The adjoint of a diffusion SDE is a deterministic backward ODE. It can therefore be discretized with the same exponential&#8209;integrator schemes that one uses on the forward probability&#8209;flow ODE; no Brownian&#8209;tree storage, no variance reduction. Up to a scale factor, the adjoint trajectory is the <em>same object</em> regardless of whether the forward sampler is ODE&#8209;based or SDE&#8209;based.</p>
+    </div>
+
+    <p class="reveal">Theorem 3.1 generalizes AdjointDPM<span class="cite" data-key="adjointdpm"></span>, which treated only the deterministic ODE sampler, to the full stochastic case &mdash; without any new variance&#8209;reduction machinery. It also clarifies a folk observation in the guidance literature: gradients estimated through stochastic samplers and through their probability&#8209;flow ODE counterparts behave similarly at the population level. Theorem 3.1 is the structural reason.</p>
+  </div>
+</section>
+
+<div class="divider"><div class="divider-line"></div></div>
+
+<!-- ───── §03 EXPONENTIAL INTEGRATOR ───── -->
+<section id="solver">
+  <div class="article-wrapper">
+    <span class="section-num reveal">03 &mdash; The solver</span>
+    <h2 class="reveal">An exponential integrator for the backward equation</h2>
+
+    <p class="lead reveal"><span class="leadin">The backward ODE</span> is stiff for the same reason the forward probability&#8209;flow ODE is: the dominant component of the drift is a fast linear term whose stiffness scales as $1/\sigma(t)$ near $t=0$.<label for="sn-stiff" class="margin-toggle-label sidenote-number"></label> Generic Runge&#8209;Kutta integrators applied to the adjoint pay for this in step count. DPM&#8209;Solver<span class="cite" data-key="dpmsolver"></span> and DEIS<span class="cite" data-key="deis"></span> address the stiffness on the forward pass by integrating the linear part exactly and approximating only the nonlinear remainder; we apply the same construction to the backward pass.</p>
+    <input type="checkbox" id="sn-stiff" class="margin-toggle"/>
+    <aside class="sidenote">"Stiff" in the numerical&#8209;ODE sense: a system with multiple time scales for which explicit solvers must take prohibitively small steps to remain stable. Exponential integrators handle the fast linear part exactly, so the step size is set by the slow nonlinear residual.</aside>
+
+    <h3 class="reveal">The construction</h3>
+
+    <p class="reveal">Write the adjoint dynamics as a stiff linear part plus a smooth nonlinear residual,</p>
+
+    <div class="eq-block"><span class="eq-label">Stiff/nonstiff splitting</span>
+      $$\dot{\boldsymbol a}_t \;=\; A(t)\,\boldsymbol a_t \;+\; \boldsymbol N\!\big(\boldsymbol a_t,\boldsymbol x_t,t\big),$$
+    </div>
+
+    <p class="reveal">where $A(t)$ collects the diagonal stiff terms induced by the noise schedule $(\alpha_t,\sigma_t)$. The exact variation&#8209;of&#8209;constants integral over a backward step $[t_{n+1}, t_n]$ is</p>
+
+    <div class="eq-block"><span class="eq-label">Variation-of-constants</span>
+      $$\boldsymbol a_{t_n} \;=\; e^{\int_{t_{n+1}}^{t_n} A(s)\,ds}\,\boldsymbol a_{t_{n+1}} \;+\; \int_{t_{n+1}}^{t_n} e^{\int_{u}^{t_n} A(s)\,ds}\,\boldsymbol N\!\big(\boldsymbol a_u,\boldsymbol x_u,u\big)\,du.$$
+    </div>
+
+    <p class="reveal">Under the standard log&#8209;SNR change of variables $\lambda(t) = \log(\alpha_t/\sigma_t)$,<label for="sn-logsnr" class="margin-toggle-label sidenote-number"></label> the integrating&#8209;factor term has a closed form and the remaining integral has a smooth integrand expressed in the noise prediction $\boldsymbol\epsilon_\theta$. <strong>AdjointDEIS&#8209;$k$</strong> truncates the Taylor expansion of that integrand to order $k$. We instantiate two members of the family:</p>
+    <input type="checkbox" id="sn-logsnr" class="margin-toggle"/>
+    <aside class="sidenote">The log&#8209;SNR coordinate $\lambda$ is the canonical reparametrization that turns the diffusion ODE into a semilinear equation with constant stiff part. DPM&#8209;Solver and DEIS both live in this coordinate; AdjointDEIS inherits it.</aside>
+
+    <div class="callout reveal">
+      <span class="callout-label">The solver family</span>
+      <p><strong>AdjointDEIS&#8209;1.</strong> Single&#8209;step, first&#8209;order. The adjoint analogue of DDIM. One U&#8209;Net call per step.</p>
+      <p><strong>AdjointDEIS&#8209;2M.</strong> Multistep, second&#8209;order. The adjoint analogue of DPM&#8209;Solver&#8209;2M; reuses noise predictions from prior steps and attains $k$&#8209;th order local truncation error.</p>
+    </div>
+
+    <h3 class="reveal">Properties</h3>
+
+    <ul class="reveal">
+      <li><strong>$\mathcal{O}(1)$ memory in solver length.</strong> No autodiff tape stored along the trajectory; one backward sweep replaces it.</li>
+      <li><strong>$k$&#8209;th order convergence.</strong> The order of the backward discretization matches the forward solver, so the adjoint stops being the bottleneck.</li>
+      <li><strong>Compute parity with a forward sample.</strong> The backward sweep evaluates the same $\boldsymbol\epsilon_\theta$ network; an optimization step costs two passes through the solver.</li>
+      <li><strong>The SDE case reuses the ODE solver.</strong> By Theorem 3.1, the SDE adjoint is itself a deterministic ODE; the same discretization applies up to a scale factor.</li>
+    </ul>
+
+    <p class="reveal">The convergence guarantees of AdjointDEIS&#8209;$k$ follow from those of the corresponding forward exponential integrators; the proofs in the paper transfer with little change once the dynamics are written in the appropriate coordinates.</p>
+  </div>
+</section>
+
+<div class="divider"><div class="divider-line"></div></div>
+
+<!-- ───── §04 STRESS TEST: FACE MORPHING ───── -->
+<section id="morph">
+  <div class="article-wrapper">
+    <span class="section-num reveal">04 &mdash; Application</span>
+    <h2 class="reveal">Guided face morphing with AdjointDEIS</h2>
+
+    <p class="lead reveal"><span class="leadin">A face morphing attack</span> takes two bona fide identities $a$ and $b$ and produces a single image that a face recognition (FR) system accepts as matching both<span class="cite" data-key="dim"></span>. We use it as the benchmark application: the task is well&#8209;instrumented, the metric MMPMR (Mating Morph Presentation Match Rate)<label for="sn-mmpmr" class="margin-toggle-label sidenote-number"></label> is unforgiving, and the prior representation&#8209;based attacks (DiM<span class="cite" data-key="dim"></span>, Fast&#8209;DiM<span class="cite" data-key="fastdim"></span>, Morph&#8209;PIPE<span class="cite" data-key="morphpipe"></span>) are well tuned.</p>
+    <input type="checkbox" id="sn-mmpmr" class="margin-toggle"/>
+    <aside class="sidenote"><strong>MMPMR @ FMR=0.1%</strong> is the fraction of morph pairs for which <em>both</em> contributing identities are accepted at a false&#8209;match&#8209;rate threshold of one in a thousand. A morph that fools the FR system on only one of the two identities does not count.</aside>
+
+    <h3 class="reveal">The identity-distance loss</h3>
+
+    <p class="reveal">Let $v_a, v_b, v_{ab}$ denote the embeddings of the two bona fide images and the morph under a frozen FR network. The morph $x_{ab}$ should be close to both identities in embedding space; we use a sum&#8209;of&#8209;distances loss together with a symmetry term that penalizes an unbalanced morph:</p>
+
+    <div class="eq-block"><span class="eq-label">Identity-distance loss</span>
+      $$\mathcal{L}_{\text{ID}} \;=\; d(v_{ab},\,v_a) \;+\; d(v_{ab},\,v_b), \qquad \mathcal{L}_{\text{diff}} \;=\; \big|d(v_{ab},v_a) - d(v_{ab},v_b)\big|, \qquad \mathcal{L}_{\text{ID}^{*}} \;=\; \mathcal{L}_{\text{ID}} + \mathcal{L}_{\text{diff}}.$$
+    </div>
+
+    <p class="reveal">The optimization variable is the initial latent $x_T$<label for="sn-xT" class="margin-toggle-label sidenote-number"></label> &mdash; we fine&#8209;tune the noise from which the diffusion sampler starts, not the model. Settings: 50 optimization steps, learning rate $0.01$, $N=20$ forward sampling steps, $M=20$ adjoint backward steps. We evaluate on SYN&#8209;MAD 2022 against three modern FR backbones: AdaFace<span class="cite" data-key="adaface"></span>, ArcFace<span class="cite" data-key="arcface"></span>, and ElasticFace<span class="cite" data-key="elasticface"></span>.</p>
+    <input type="checkbox" id="sn-xT" class="margin-toggle"/>
+    <aside class="sidenote">Optimizing the latent rather than the weights is the appropriate choice for a per&#8209;pair attack: each $(a,b)$ pair gets its own gradient descent against its own loss, and the diffusion model itself is left untouched.</aside>
+
+    <h3 class="reveal">Main result &mdash; MMPMR @ FMR=0.1%, SYN-MAD 2022</h3>
+
+    <p class="reveal">A morphing attack is multi-objective: the attack must fool every recognizer whilst keeping NFE low. The radar below plots seven attacks against three FR systems (MMPMR at $\mathrm{FMR}=0.1\%$ against AdaFace, ArcFace, ElasticFace) and a compute-efficiency axis ($1-\mathrm{NFE}/2350$). The MMPMR axes are scaled from 65% to 100% to make the separation between attacks legible.</p>
+
+    <!-- ───── Radar: 4 axes (3 FRs + compute) × 7 attacks ─────
+         Diamond radar. AdaFace top, ArcFace right, ElasticFace bottom,
+         Compute (1−NFE/2350) left. Heuristic baselines (Webmorph, MIPGAN-II)
+         carry no diffusion compute → NFE=0 → compute axis = 1. -->
+    <figure class="radar-wrap reveal" aria-label="Radar chart of seven attacks across three FR systems and a compute axis">
+      <div class="radar-flip-toolbar">
+        <button type="button" class="radar-flip-btn" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          <span class="flip-label">Show data</span>
+        </button>
+      </div>
+      <div class="radar-flip-stage">
+      <div class="radar-face radar-face-front">
+
+      <svg class="radar-svg" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <!-- background grid: 5 concentric diamonds -->
+        <g>
+          <polygon class="grid-poly-major" points="300,100 500,300 300,500 100,300"/>
+          <polygon class="grid-poly"       points="300,140 460,300 300,460 140,300"/>
+          <polygon class="grid-poly"       points="300,180 420,300 300,420 180,300"/>
+          <polygon class="grid-poly"       points="300,220 380,300 300,380 220,300"/>
+          <polygon class="grid-poly"       points="300,260 340,300 300,340 260,300"/>
+          <line class="axis-spoke" x1="300" y1="300" x2="300" y2="100"/>
+          <line class="axis-spoke" x1="300" y1="300" x2="500" y2="300"/>
+          <line class="axis-spoke" x1="300" y1="300" x2="300" y2="500"/>
+          <line class="axis-spoke" x1="300" y1="300" x2="100" y2="300"/>
+        </g>
+
+        <!-- axis labels -->
+        <text class="axis-label" x="300"  y="74"  text-anchor="middle">AdaFace MMPMR</text>
+        <text class="axis-sub"   x="300"  y="86"  text-anchor="middle">65% &rarr; 100%</text>
+        <text class="axis-label" x="526"  y="298" text-anchor="start">ArcFace</text>
+        <text class="axis-sub"   x="526"  y="310" text-anchor="start">65% &rarr; 100%</text>
+        <text class="axis-label" x="300"  y="540" text-anchor="middle">ElasticFace MMPMR</text>
+        <text class="axis-sub"   x="300"  y="552" text-anchor="middle">65% &rarr; 100%</text>
+        <text class="axis-label" x="74"   y="298" text-anchor="end">Compute</text>
+        <text class="axis-sub"   x="74"   y="310" text-anchor="end">1 &minus; NFE/2350</text>
+
+        <!-- AdjointDEIS-ODE subtle fill (drawn first) -->
+        <polygon id="poly-adj-fill" class="solver-fill-rex-em" points=""/>
+
+        <!-- attack polygons (baselines drawn first so DiM-family lands on top) -->
+        <polygon id="poly-webmorph"    class="solver-poly is-baseline" stroke="#7a6f5f" stroke-dasharray="2 3" points=""/>
+        <polygon id="poly-mipgan"      class="solver-poly is-baseline" stroke="#c08a4a" stroke-dasharray="2 3" points=""/>
+        <polygon id="poly-dim-a"       class="solver-poly" stroke="#a83434" stroke-dasharray="4 3" points=""/>
+        <polygon id="poly-fastdim"     class="solver-poly" stroke="#3b82c4" stroke-dasharray="4 3" points=""/>
+        <polygon id="poly-mp"          class="solver-poly" stroke="#7a4ea8" points=""/>
+        <polygon id="poly-adj-sde"     class="solver-poly is-rex" stroke="#5fa05b" points=""/>
+        <polygon id="poly-adj-ode"     class="solver-poly is-rex-em" stroke="#2f5e2c" points=""/>
+
+        <script type="application/json" class="radar-config">
+{
+  "center":[300,300], "R":200,
+  "axes":[90,0,270,180],
+  "fillId":"poly-adj-fill", "fillFrom":"poly-adj-ode",
+  "initial":"main",
+  "states":{
+    "main":{
+      "poly-webmorph":  [0.9417,0.9123,0.9531,1.0000],
+      "poly-mipgan":    [0.1586,0.2054,0.0069,0.9787],
+      "poly-dim-a":     [0.7780,0.7194,0.8014,0.8511],
+      "poly-fastdim":   [0.7720,0.7194,0.8014,0.8723],
+      "poly-mp":        [0.8831,0.7954,0.8714,0.0000],
+      "poly-adj-sde":   [0.9591,0.9417,0.9357,0.0426],
+      "poly-adj-ode":   [0.9943,0.9648,0.9826,0.0426]
+    }
+  }
+}
+        </script>
+      </svg>
+
+      <div class="radar-legend">
+        <span class="li" data-poly="poly-webmorph" style="color:#7a6f5f"><span class="swatch dashed"></span>Webmorph <em>(heuristic)</em></span>
+        <span class="li" data-poly="poly-mipgan"   style="color:#c08a4a"><span class="swatch dashed"></span>MIPGAN-II <em>(GAN, NFE=50)</em></span>
+        <span class="li" data-poly="poly-dim-a"     style="color:#a83434"><span class="swatch dashed"></span>DiM-A <em>(NFE=350)</em></span>
+        <span class="li" data-poly="poly-fastdim"   style="color:#3b82c4"><span class="swatch dashed"></span>Fast-DiM <em>(NFE=300)</em></span>
+        <span class="li" data-poly="poly-mp"        style="color:#7a4ea8"><span class="swatch solid"></span>Morph-PIPE <em>(NFE=2350)</em></span>
+        <span class="li" data-poly="poly-adj-sde"   style="color:#5fa05b"><span class="swatch solid"></span>AdjointDEIS-1 (SDE) <em>(NFE=2250)</em></span>
+        <span class="li" data-poly="poly-adj-ode"   style="color:#2f5e2c"><span class="swatch solid"></span>AdjointDEIS-1 (ODE) <em>(NFE=2250)</em></span>
+      </div>
+
+      </div><!-- /radar-face-front -->
+
+      <div class="radar-face radar-face-back" hidden>
+        <table class="radar-data-table">
+          <caption>MMPMR (%) at FMR=0.1% &middot; SYN-MAD 2022, FRLL</caption>
+          <thead>
+            <tr>
+              <th class="tcol-text">Attack</th>
+              <th>NFE &darr;</th>
+              <th>AdaFace &uarr;</th>
+              <th>ArcFace &uarr;</th>
+              <th>ElasticFace &uarr;</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Webmorph <em>(heuristic)</em></td><td>&mdash;</td><td>97.96</td><td>96.93</td><td>98.36</td></tr>
+            <tr><td>MIPGAN-II <em>(GAN)</em></td><td>50</td><td>70.55</td><td>72.19</td><td>65.24</td></tr>
+            <tr><td>DiM-A</td><td>350</td><td>92.23</td><td>90.18</td><td>93.05</td></tr>
+            <tr><td>Fast-DiM</td><td>300</td><td>92.02</td><td>90.18</td><td>93.05</td></tr>
+            <tr><td>Morph-PIPE</td><td>2350</td><td>95.91</td><td>92.84</td><td>95.50</td></tr>
+            <tr class="is-rex"><td>AdjointDEIS-1 (SDE)</td><td>2250</td><td>98.57</td><td>97.96</td><td>97.75</td></tr>
+            <tr class="is-rex"><td>AdjointDEIS-1 (ODE) <em>(ours)</em></td><td>2250</td><td class="best">99.80</td><td class="best">98.77</td><td class="best">99.39</td></tr>
+          </tbody>
+        </table>
+      </div>
+      </div><!-- /radar-flip-stage -->
+    </figure>
+    <aside class="margin-caption reveal"><span class="figlabel">Figure 1.</span>SYN&#8209;MAD 2022 (FRLL pairs). Seven attacks plotted across three FR-system MMPMR axes and a compute axis ($1-\mathrm{NFE}/2350$). Click any legend entry to dim that polygon. <strong>AdjointDEIS&#8209;ODE</strong> is the first representation-based attack to saturate all three FR axes, edging out SDE-adjoint guidance &mdash; a gap we attribute to discretization error of the SDE solver at large step sizes, not to the theory.</aside>
+
+    <div class="metric-row reveal">
+      <div class="metric-pill"><div class="mp-key">AdaFace MMPMR</div><div class="mp-val deep">99.80</div><div class="mp-note">+3.89 over Morph-PIPE</div></div>
+      <div class="metric-pill"><div class="mp-key">ArcFace MMPMR</div><div class="mp-val">98.77</div><div class="mp-note">+5.93 over Morph-PIPE</div></div>
+      <div class="metric-pill"><div class="mp-key">ElasticFace MMPMR</div><div class="mp-val cyan">99.39</div><div class="mp-note">+3.89 over Morph-PIPE</div></div>
+      <div class="metric-pill"><div class="mp-key">Memory (in solver $N$)</div><div class="mp-val deep">$\mathcal{O}(1)$</div><div class="mp-note">vs. $\mathcal{O}(N)$ for DTO</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><div class="divider-line"></div></div>
+
+<!-- ───── §05 HONEST CAVEAT ───── -->
+<section id="caveat">
+  <div class="article-wrapper">
+    <span class="section-num reveal">05 &mdash; A note from 2026</span>
+    <h2 class="reveal">A revised recommendation in 2026</h2>
+
+    <p class="lead reveal"><span class="leadin">The theoretical results</span> above stand without modification. Our recommendation for the <em>practical</em> computation of these gradients, however, has shifted since publication, and we record the revision here.</p>
+
+    <div class="callout callout-warn reveal">
+      <span class="callout-label">Author update, 2026</span>
+      <p>Following Kidger's analysis<span class="cite" data-key="kidger"></span> (&sect;5.1.2.3) and our own follow&#8209;up work<span class="cite" data-key="greed_is_good"></span> (Appendix E), <strong>we now generally discourage use of the continuous adjoint method for backpropagating through diffusion models</strong>. The reason is accuracy: the backward latent recovery and the discretization error of the adjoint sweep compound, and the resulting gradient estimates are noisier than DTO with recursive gradient checkpointing or with an algebraically reversible solver<span class="cite" data-key="kidger2021efficient"></span><span class="cite" data-key="mccallum2024foster"></span><span class="cite" data-key="rex"></span>.</p>
+    </div>
+
+    <h3 class="reveal">Discussion and recomendations</h3>
+
+    <p class="reveal">For most modern use cases &mdash; particularly when GPU memory is sufficient &mdash; <strong>discretize&#8209;then&#8209;optimize with recursive gradient checkpointing</strong> (for example via Diffrax<span class="cite" data-key="kidger"></span>) is the more reliable approach.<label for="sn-checkpoint" class="margin-toggle-label sidenote-number"></label></p>
+    <input type="checkbox" id="sn-checkpoint" class="margin-toggle"/>
+    <aside class="sidenote">Recursive checkpointing recovers $\mathcal{O}(\log N)$ memory at the cost of $\mathcal{O}(\log N)$ extra forward passes &mdash; an intermediate point between full DTO ($\mathcal{O}(N)$ memory) and continuous adjoint ($\mathcal{O}(1)$ memory, with discretization error compounding through the backward sweep).</aside>
+
+    <p class="reveal">A second alternative is to discretize the forward pass with an <strong>algebraically reversible solver</strong>, in which case the backward trajectory is reconstructed exactly from the closed&#8209;form inverse of each step and no autodiff tape need be stored. Asynchronous leapfrog and reversible Heun<span class="cite" data-key="kidger2021efficient"></span><span class="cite" data-key="zhuang2021mali"></span>, the McCallum&ndash;Foster construction<span class="cite" data-key="mccallum2024foster"></span>, and our subsequent work on Rex<span class="cite" data-key="rex"></span> &mdash; which extends the McCallum&ndash;Foster construction to exponential integrators and to diffusion SDEs &mdash; all provide $\mathcal{O}(1)$ memory in solver length without incurring the discretization error of a continuous adjoint sweep.<label for="sn-reversible" class="margin-toggle-label sidenote-number"></label></p>
+    <input type="checkbox" id="sn-reversible" class="margin-toggle"/>
+    <aside class="sidenote">Reversible solvers replace the memory&#8209;accuracy trade&#8209;off with a solver&#8209;design constraint: the forward step must admit a closed&#8209;form inverse. Where such a scheme is available, the backward trajectory is recovered to floating&#8209;point round&#8209;off, and the resulting gradients are exact at the chosen discretization rather than approximated by a second backward integration.</aside>
+
+    <p class="reveal">The continuous adjoint remains useful when memory is the binding constraint, when the integrand is well&#8209;conditioned, when the chosen solver is of sufficiently high order that the backward discretization error is negligible, and when a reversible solver is unavailable for the forward sampler in use. AdjointDEIS&#8209;2M is the appropriate choice in that regime; AdjointDEIS&#8209;1 is adequate for prototyping but will leave accuracy on the table.</p>
+  </div>
+</section>
+
+<div class="divider"><div class="divider-line"></div></div>
+
+<!-- ───── §06 CONCLUSIONS ───── -->
+<section id="takeaways">
+  <div class="article-wrapper">
+    <span class="section-num reveal">06 &mdash; Conclusions</span>
+    <h2 class="reveal">Conclusions</h2>
+
+    <p class="reveal">
+      Gradients of a loss with respect to inputs of a diffusion sampler are required by guided generation, latent optimization, and inverse&#8209;problem solvers, but discretize&#8209;then&#8209;optimize incurs $\mathcal{O}(N)$ memory in the number of solver steps. The continuous adjoint method addresses the memory cost by solving a backward differential equation; until this work the construction was confined to deterministic samplers, and the backward equation was discretized with off&#8209;the&#8209;shelf solvers that inherited the stiffness of the forward process.
+      We prove that the continuous adjoint of a diffusion SDE with state&#8209;independent diffusion coefficient reduces to a deterministic ODE, which removes the obstruction to applying the continuous adjoint method to stochastic samplers. On the basis of this structural identity we construct <strong>AdjointDEIS</strong>, a family of exponential&#8209;integrator solvers for the continuous adjoint equations of diffusion ODEs and SDEs, with $\mathcal{O}(1)$ memory in solver length and $k$&#8209;th order convergence.
+      As an application, AdjointDEIS&#8209;guided DiM is the first representation&#8209;based morphing attack to outperform the heuristic Webmorph baseline on all three modern FR systems we tested.</p>
+
+  </div>
+</section>
+
+<!-- ───── REFERENCES — auto-built from <span class="cite"> sites by citations.js ───── -->
+<section id="references" class="references" aria-label="References">
+  <div class="article-wrapper">
+    <h2 class="reveal">References</h2>
+    <div id="references-list-host"></div>
+  </div>
+</section>
+
+<!-- ───── FOOTER ───── -->
+<footer class="site-footer" id="cite">
+  <div class="footer-grid">
+    <div class="footer-col">
+      <h4>Citation</h4>
+      <p style="margin-bottom:.4rem;font-size:.82rem;font-style:italic">If this work is useful to your research, please cite the NeurIPS 2024 paper. Click the block to copy.</p>
+      <div class="citation-block" onclick="copyCitation(this)" role="button" tabindex="0" aria-label="Copy AdjointDEIS BibTeX">
+        <span class="copy-hint">Click to copy</span>
+<pre>@inproceedings{blasingame2024adjointdeis,
+  title     = {{AdjointDEIS}: Efficient Gradients
+               for Diffusion Models},
+  author    = {Blasingame, Zander W. and Liu, Chen},
+  booktitle = {Advances in Neural Information
+               Processing Systems (NeurIPS)},
+  year      = {2024},
+  url       = {https://openreview.net/forum?id=fAlcxvrOEX}
+}</pre>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- Teaser image-->
-<section class="hero teaser">
-  <div class="container is-max-desktop">
-    <div class="hero-body">
-      <img src="assets/overview.png" alt="AdjointDEIS Flow Chart">
-      <h2 class="subtitle has-text-centered">
-          We propose AdjointDEIS a family of bespoke ODE solvers which solve the continuous adjoint equations for diffusion models.
-          Above we show a high level view of AdjointDEIS.
-      </h2>
+    <div class="footer-col">
+      <h4>Links</h4>
+      <ul class="footer-links">
+        <li><a href="https://openreview.net/forum?id=fAlcxvrOEX" target="_blank" rel="noopener">OpenReview (NeurIPS 2024)</a></li>
+        <li><a href="https://arxiv.org/abs/2405.15020" target="_blank" rel="noopener">arXiv</a></li>
+        <li><a href="https://github.com/zblasingame/AdjointDEIS" target="_blank" rel="noopener">Source code</a></li>
+        <li><a href="../dimblog/index.html">DiM &amp; Fast-DiM (companion)</a></li>
+        <li><a href="../greedydimblog/index.html">Greedy-DiM (IJCB 2024)</a></li>
+      </ul>
     </div>
-  </div>
-</section>
-
-
-<!-- Paper abstract -->
-<section class="section hero is-light">
-  <div class="container is-max-desktop">
-    <div class="columns is-centered has-text-centered">
-      <div class="column is-four-fifths">
-        <h2 class="title is-3">Abstract</h2>
-        <div class="content has-text-justified">
-          <p>
-          The optimization of the latents and parameters of diffusion models with respect to some differentiable metric defined on the output of the model is a challenging and complex problem. The sampling for diffusion models is done by solving either the <i>probability flow</i> ODE or diffusion SDE wherein a neural network approximates the score function allowing a numerical ODE/SDE solver to be used. However, naïve backpropagation techniques are memory intensive, requiring the storage of all intermediate states, and face additional complexity in handling the injected noise from the diffusion term of the diffusion SDE. We propose a novel family of bespoke ODE solvers to the continuous adjoint equations for diffusion models, which we call <i>AdjointDEIS</i>. We exploit the unique construction of diffusion SDEs to further simplify the formulation of the continuous adjoint equations using <i>exponential integrators</i>. Moreover, we provide convergence order guarantees for our bespoke solvers. Significantly, we show that continuous adjoint equations for diffusion SDEs actually simplify to a simple ODE. Lastly, we demonstrate the effectiveness of AdjointDEIS for guided generation with an adversarial attack in the form of the face morphing problem.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-<!-- End paper abstract -->
-
-<!--<section class="section hero is-small">-->
-  <!--<div class="hero-body">-->
-    <!--<div class="container is-max-desktop">-->
-      <!--<div class="level-set has-text-justified">-->
-        <!--<p>-->
-          <!--The face morphing attack attempts to fool a Face Recognition (FR) system by producing a <em>single</em> image which registers a false accept with <em>both</em> original identities. Previous face morphing attacks used landmark-based methods which align and warp the two faces before performing a pixel-wise average between the two faces. Such techniques are prone to considerably artefacts, especially outside the center of the face. Conversely, Generative Adversarial Network (GAN) based morphs produce more realistic looking faces but their performance, but their effectiveness in fooling the FR system leaves much to be desired. DiMs outperform GAN-based morphs; however, they still lag behind landmark-based morphs in terms of fooling an FR system. We propose Greedy-DiM* a family of algorithms which leverage a simple greedy strategy to <em>massively</em> improve the effectiveness of DiM while still retaining the high visual fidelity of DiM.-->
-        <!--</p>-->
-      <!--</div>-->
-      <!--<img class="blend-img-background center-image" src="assets/greedy_dim_example_morph.png" alt="Example morphed image produced by Greedy-DiM">-->
-    <!--</div>-->
-  <!--</div>-->
-<!--</section>-->
-
-  <section class="section hero is-small">
-  <div class="hero-body">
-    <div class="container is-max-desktop">
-      <h2 class="title is-3">Results</h2>
-      <img class="blend-img-background center-image" src="assets/morph_comp.png" alt="AdjointDEIS-1">
-      <p>
-        We can guide the generative process by using AdjointDEIS. For example we use AdjointDEIS to create high quality face morphs which fool Face Recongition (FR) systems.
+    <div class="footer-col">
+      <h4>Contact</h4>
+      <p style="margin-bottom:.5rem">Questions about the methods, code, or collaborations:</p>
+      <p style="margin-bottom:.9rem">
+        <a href="mailto:blasinzw@clarkson.edu">blasinzw [at] clarkson.edu</a><br>
+        <a href="mailto:cliu@clarkson.edu">cliu [at] clarkson.edu</a>
       </p>
-       <img class="blend-img-background center-image" src="assets/morph_results.png" alt="AdjointDEIS-2M">
-      <p>
-        AdjointDEIS applied to face morphing achieves SOTA results.
-      </p>
+      <p style="font-size:.78rem;color:var(--text-dim);line-height:1.55"><a href="https://www.clarkson.edu" target="_blank" rel="noopener">Clarkson University</a></p>
     </div>
   </div>
-</section>
-
-
-  <section class="section hero is-small is-light">
-  <div class="hero-body">
-    <div class="container is-max-desktop">
-      <h2 class="title is-3">Method</h2>
-      <div class="level-set has-text-justified">
-        <p>
-            We propose to solve the continous adjoint equations to solve the following optimization problem below.
-            We exploit the unique structure of diffusion models to make these numerical solvers <i>efficient</i>.
-        </p>
-      </div>
-        <img class="blend-img-background center-image" src="assets/problem_statement.png" alt="SDE-AdjointDEIS-1">
-        <p>
-        <strong>Problem Statement</strong> Given a diffusion ODE solve the problem above.
-        </p>
-        <img class="blend-img-background center-image" src="assets/sde_is_ode.png" alt="SDE-AdjointDEIS-1">
-      <p>
-        The continuous adjoint equations for diffusion SDEs actually simplify to an ODE!
-      </p>
-    </div>
-  </div>
-</section>
-
-
-  <section class="section hero is-small">
-  <div class="hero-body">
-    <div class="container is-max-desktop">
-      <h2 class="title is-3">Comparison with Other Methods</h2>
-      <img class="blend-img-background center-image" src="assets/comp_adjoint.png" alt="Comparision of methods">
-      <div class="level-set has-text-justified">
-        <p>
-            We can find the gradients for a number of quantities of interest and can find them for both diffusion ODEs and SDEs.
-        </p>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<!--BibTex citation -->
-  <section class="section" id="BibTeX">
-    <div class="container is-max-desktop content">
-      <h2 class="title">BibTeX</h2>
-      <pre><code>
-        @inproceedings{blasingame2024adjointdeis,
-          title = {Adjoint{DEIS}: Efficient Gradients for Diffusion Models},
-          author = {Blasingame, Zander W. and Liu, Chen},
-          booktitle = {The Thirty-eighth Annual Conference on Neural Information Processing Systems},
-          year = {2024},
-          url = {https://openreview.net/forum?id=fAlcxvrOEX},
-        }
-      </code></pre>
-    </div>
-</section>
-<!--End BibTex citation -->
-
-
-  <footer class="footer">
-  <div class="container">
-    <div class="columns is-centered">
-      <div class="column is-8">
-        <h2 class="title">Acknowledgements</h2>
-        <div class="content">
-          <p>
-            This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank">Academic Project Page Template</a> which was adopted from the <a href="https://nerfies.github.io" target="_blank">Nerfies</a> project page.
-            You are free to borrow the of this website, we just ask that you link back to this page in the footer. <br> This website is licensed under a <a rel="license"  href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative
-            Commons Attribution-ShareAlike 4.0 International License</a>.
-          </p>
-
-        </div>
-      </div>
-    </div>
+  <div class="footer-bottom">
+    AdjointDEIS &middot; Clarkson &middot; 2024
   </div>
 </footer>
 
+<script src="citations.js"></script>
+<script>
+// ───── theme toggle (light / dark) ─────
+(function(){
+  const root=document.documentElement;
+  const btn=document.getElementById('themeToggle');
+  if(!btn) return;
+  const sync=()=>{
+    const isDark=root.getAttribute('data-theme')==='dark';
+    btn.setAttribute('aria-pressed',isDark?'true':'false');
+    btn.setAttribute('aria-label',isDark?'Switch to light mode':'Switch to dark mode');
+    btn.setAttribute('title',isDark?'Switch to light mode':'Switch to dark mode');
+  };
+  sync();
+  btn.addEventListener('click',()=>{
+    const next=root.getAttribute('data-theme')==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{ localStorage.setItem('adjointdeis-theme',next); }catch(e){}
+    sync();
+    // re-render Pareto chart so colours pick up new CSS variables if needed
+    if(typeof window.__paretoRender==='function') window.__paretoRender();
+  });
+  if(window.matchMedia){
+    const mq=window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange=e=>{
+      let stored=null;
+      try{ stored=localStorage.getItem('adjointdeis-theme'); }catch(_){}
+      if(stored) return;
+      root.setAttribute('data-theme',e.matches?'dark':'light');
+      sync();
+    };
+    if(mq.addEventListener) mq.addEventListener('change',onChange);
+    else if(mq.addListener) mq.addListener(onChange);
+  }
+})();
 
+// ───── scroll progress ─────
+const sp=document.getElementById('scrollProg');
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  const total=h.scrollHeight-h.clientHeight;
+  const p=total>0?(h.scrollTop/total)*100:0;
+  sp.style.width=p+'%';
+},{passive:true});
+
+// ───── reveal-on-scroll ─────
+const io=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('visible'); io.unobserve(e.target);} });
+},{threshold:0.08, rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+// ───── copy BibTeX from a footer .citation-block ─────
+function copyCitation(el){
+  if(!el) return;
+  const pre = el.querySelector('pre');
+  if(!pre) return;
+  const text = pre.textContent;
+  const hint = el.querySelector('.copy-hint');
+  const writeFallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.left='-9999px';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+  };
+  const onCopied = () => {
+    el.classList.add('copied');
+    if(hint){
+      const prev = hint.textContent;
+      hint.textContent = 'Copied';
+      setTimeout(()=>{ hint.textContent = prev; el.classList.remove('copied'); }, 1600);
+    } else {
+      setTimeout(()=>el.classList.remove('copied'), 1600);
+    }
+  };
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(onCopied, ()=>{ writeFallback(); onCopied(); });
+  } else {
+    writeFallback(); onCopied();
+  }
+}
+document.addEventListener('keydown', function(e){
+  if((e.key === 'Enter' || e.key === ' ') && document.activeElement && document.activeElement.classList.contains('citation-block')){
+    e.preventDefault();
+    copyCitation(document.activeElement);
+  }
+});
+
+// ───── Radar / spider chart engine ─────
+// Each .radar-wrap on the page carries a <script type="application/json" class="radar-config">
+// with: { center, R, axes:[deg,...], states:{ key: { polyId:[v,...] } }, initial:'key',
+// fillId, fillFrom }. Polygons live as <polygon id="..."> inside the figure.
+(function(){
+  function setupRadar(fig){
+    const cfgEl = fig.querySelector('script.radar-config');
+    if(!cfgEl) return;
+    let cfg;
+    try { cfg = JSON.parse(cfgEl.textContent); } catch(e){ console.error('radar config parse error',e); return; }
+
+    const cx = cfg.center?.[0] ?? 300, cy = cfg.center?.[1] ?? 300;
+    const R = cfg.R ?? 200;
+    const axes = cfg.axes;
+    const states = cfg.states;
+    let current = cfg.initial || Object.keys(states)[0];
+
+    function pointsArr(values){
+      return values.map((v,i)=>{
+        const a = axes[i] * Math.PI/180;
+        return [cx + Math.cos(a) * R * v, cy - Math.sin(a) * R * v];
+      });
+    }
+    const fmt = arr => arr.map(p=>p[0].toFixed(2)+','+p[1].toFixed(2)).join(' ');
+
+    function setPoly(id, vals){
+      const el = fig.querySelector('#'+CSS.escape(id));
+      if(el) el.setAttribute('points', fmt(pointsArr(vals)));
+    }
+
+    function snapshot(key){
+      const s = states[key]; if(!s) return;
+      Object.keys(s).forEach(id => setPoly(id, s[id]));
+      if(cfg.fillId && cfg.fillFrom && s[cfg.fillFrom]) setPoly(cfg.fillId, s[cfg.fillFrom]);
+    }
+
+    snapshot(current);
+
+    fig.querySelectorAll('.radar-legend .li.is-dimmed-default').forEach(li => {
+      const id = li.dataset.poly;
+      const poly = fig.querySelector('#'+CSS.escape(id));
+      if(poly) poly.style.opacity = '.18';
+      li.classList.add('dimmed');
+      if(cfg.fillId && cfg.fillFrom === id){
+        const f = fig.querySelector('#'+CSS.escape(cfg.fillId));
+        if(f) f.style.opacity = '.01';
+      }
+    });
+
+    fig.querySelectorAll('.radar-legend .li').forEach(li => {
+      li.addEventListener('click', () => {
+        const id = li.dataset.poly;
+        const poly = fig.querySelector('#'+CSS.escape(id));
+        const dim = li.classList.toggle('dimmed');
+        if(poly) poly.style.opacity = dim ? '.08' : '';
+        if(cfg.fillId && cfg.fillFrom === id){
+          const f = fig.querySelector('#'+CSS.escape(cfg.fillId));
+          if(f) f.style.opacity = dim ? '.01' : '';
+        }
+      });
+    });
+  }
+
+  document.querySelectorAll('.radar-wrap').forEach(setupRadar);
+})();
+
+// ───── Radar flip-card: toggle radar ↔ raw-data table ─────
+(function setupRadarFlip(){
+  document.querySelectorAll('.radar-wrap').forEach(wrap => {
+    const btn   = wrap.querySelector('.radar-flip-btn');
+    const front = wrap.querySelector('.radar-face-front');
+    const back  = wrap.querySelector('.radar-face-back');
+    const label = wrap.querySelector('.flip-label');
+    if(!btn || !front || !back) return;
+
+    let showingBack = false, animating = false;
+
+    btn.addEventListener('click', () => {
+      if(animating) return;
+      animating = true;
+      const out = showingBack ? back : front;
+      const inn = showingBack ? front : back;
+      out.classList.add('is-out');
+      setTimeout(() => {
+        out.hidden = true;
+        out.classList.remove('is-out');
+        inn.hidden = false;
+        inn.classList.add('is-out');
+        void inn.offsetWidth;
+        inn.classList.remove('is-out');
+        showingBack = !showingBack;
+        wrap.classList.toggle('is-flipped', showingBack);
+        btn.setAttribute('aria-pressed', showingBack ? 'true' : 'false');
+        if(label) label.textContent = showingBack ? 'Show chart' : 'Show data';
+        setTimeout(() => { animating = false; }, 350);
+      }, 350);
+    });
+  });
+})();
+</script>
 </body>
 </html>
+
+
+

@@ -12,7 +12,8 @@ Clarkson University
 
 ## Introduction
 **Update. The use of the adjoint method is generally discouraged see ([Kidger](https://arxiv.org/pdf/2202.02435) 2022, Section 5.1.2.3; [Blasingame et al.](https://arxiv.org/pdf/2502.08006v2) 2025, Appendix E).**
-As such we would generally recommend using *discretize-then-optimize* with recursive checkpointing with Diffrax [Diffrax](https://docs.kidger.site/diffrax/api/adjoints/).
+As such we would generally recommend using *discretize-then-optimize* with recursive checkpointing with Diffrax [Diffrax](https://docs.kidger.site/diffrax/api/adjoints/) if doing roll-outs with diffusion/flow models.
+Alternatively, one could look at reversible solvers like in ([Blasingame et al.](https://arxiv.org/abs/2502.08834), 2025) or flow maps ([Sabour et al.](https://arxiv.org/abs/2511.22688), 2025).
 We include the old code for legacy reasons but strongly recommend using this DTO strategy for most problems.
 One can achieve similar results to these bespoke solvers via a change-of-variables in combination with pre-exising libraries like diffrax, see ([Blasingame et al.](https://arxiv.org/pdf/2502.08006v2) 2025, Proposition D.2) for more details.
 
